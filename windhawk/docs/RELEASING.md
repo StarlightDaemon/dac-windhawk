@@ -4,13 +4,27 @@ The source `// @version` in `mods/dac-windhawk.wh.cpp` is authoritative.
 `tools/version.ps1` keeps the diagnostic string in sync and checks the changelog
 and release tag. Configuration schema versions are independent of product versions.
 
+## Development compatibility policy
+
+The operator confirms that no version is deployed to production end users.
+Development releases are replaceable snapshots: breaking changes, removal of
+obsolete code, configuration resets and clean installs are permitted. There is
+no required version-to-version migration or backward-compatibility guarantee.
+Choose the simplest correct final implementation and describe any required reset
+in its release notes. Existing migration/rollback tests are retained regression
+coverage, not a promise to carry those mechanisms into future versions.
+
+Published release tags/assets remain immutable records of what was tested;
+supersede them with a new version. Before supporting production end users, review
+and explicitly establish any compatibility/support commitments.
+
 | Change | Version / record |
 | --- | --- |
 | Each coherent change | Focused Git commit with a descriptive message |
 | Fixes or small refinements ready to distribute | Next PATCH, e.g. 0.2.0 → 0.2.1 |
 | A feature or substantial batch | Next MINOR, e.g. 0.2.1 → 0.3.0 |
 | Reviewed moderator-submission candidate | 1.0.0; moderator acceptance is separate |
-| Incompatible public behavior or configuration after 1.0 | Next MAJOR, with migration notes |
+| Incompatible public behavior or configuration after 1.0 | Next MAJOR, with replacement/reset instructions as needed |
 
 Use `MAJOR.MINOR.PATCH` with no leading zeros. This public development series uses
 ordinary `0.x` numbers and the GitHub prerelease flag, rather than suffixes. Historical

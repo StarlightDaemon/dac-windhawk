@@ -108,7 +108,10 @@ void ExerciseSettingsDpi(HWND window,int editId,SettingsLayout& layout,int& scro
     SetWindowPos(window,nullptr,0,0,700,400,SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE);
     SendMessageW(window,WM_VSCROLL,SB_PAGEDOWN,0);Check(scroll>0,"settings fixture scrolled before monitor transition");
     for(int cycle=0;cycle<3;++cycle)for(int dpi:{144,192,120,96}) {
-        RECT suggested{-1500,70,-1500+MulDiv(700,dpi,96),470};
+        // Keep requested size within Windows' maximum tracking dimensions on
+        // small CI desktops. Negative placement and every DPI are still tested.
+        int width=std::min(MulDiv(700,dpi,96),std::max(300,GetSystemMetrics(SM_CXMAXTRACK)-32));
+        RECT suggested{-1500,70,-1500+width,470};
         auto previousFont=reinterpret_cast<HFONT>(SendMessageW(field,WM_GETFONT,0,0));
         SendMessageW(window,WM_DPICHANGED,MAKEWPARAM(dpi,dpi),reinterpret_cast<LPARAM>(&suggested));
         auto currentFont=reinterpret_cast<HFONT>(SendMessageW(field,WM_GETFONT,0,0));
@@ -116,7 +119,9 @@ void ExerciseSettingsDpi(HWND window,int editId,SettingsLayout& layout,int& scro
         Check(IsWindow(window)&&GetDlgItem(window,editId)==field,"DPI transition preserves window and control handles");
         Check(ControlText(window,editId)==L"777"&&layout.dpi==dpi,"DPI transition preserves unsaved text and applies new scale");
         DWORD start=0,end=0;SendMessageW(field,EM_GETSEL,reinterpret_cast<WPARAM>(&start),reinterpret_cast<LPARAM>(&end));Check(start==1&&end==2,"DPI transition preserves edit selection");
-        RECT actual{};GetWindowRect(window,&actual);Check(actual.left==suggested.left&&actual.top==suggested.top&&actual.right==suggested.right,"DPI suggested position honored including negative coordinates");
+        RECT actual{};GetWindowRect(window,&actual);
+        if(actual.left!=suggested.left||actual.top!=suggested.top||actual.right!=suggested.right)fprintf(stderr,"DPI %d requested %ld,%ld,%ld,%ld actual %ld,%ld,%ld,%ld\n",dpi,suggested.left,suggested.top,suggested.right,suggested.bottom,actual.left,actual.top,actual.right,actual.bottom);
+        Check(actual.left==suggested.left&&actual.top==suggested.top&&actual.right==suggested.right,"DPI suggested position honored including negative coordinates");
         SCROLLINFO info{};info.cbSize=sizeof(info);info.fMask=SIF_ALL;GetScrollInfo(window,SB_VERT,&info);Check(scroll==info.nPos&&scroll>0,"DPI transition retains valid scroll offset");
         for(auto& c:layout.controls){RECT rect{};GetWindowRect(c.window,&rect);MapWindowPoints(nullptr,window,reinterpret_cast<POINT*>(&rect),2);
             Check(rect.left==MulDiv(c.x,dpi,96)&&rect.top==MulDiv(c.y,layout.dpi,96)-scroll&&rect.right-rect.left==MulDiv(c.width,dpi,96),"controls reflow from original logical coordinates without drift");}

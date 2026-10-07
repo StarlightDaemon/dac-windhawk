@@ -93,6 +93,12 @@ An initial packaging run failed because its missing-report mutation assumed an
 old report name. The fixture now removes a report required by the selected trusted
 specification; the complete fresh rerun above passed. Requirements were not relaxed.
 
+The first hosted run reached the Advanced group and exposed a DPI fixture that
+requested widths beyond Windows' tracking limit on its 1024-pixel desktop. The
+fixture now bounds its requested width using that limit, retains every geometry,
+draft and font assertion, and logs actual/requested bounds on failure. The changed
+Advanced and nextbeta groups passed locally; hosted results remain in the run history.
+
 The [GitHub Actions history](https://github.com/StarlightDaemon/dac-windhawk/actions/workflows/release.yml)
 records hosted results against exact commits. The source bundle carries exact
 input, binary and test evidence identities. Hosted validation and tag publication

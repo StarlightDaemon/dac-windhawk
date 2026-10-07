@@ -14,6 +14,8 @@ a completed 1.0 release. No historical tag or published release is fabricated.
 - Include top-level usage/license/security guidance and pinned fixtures in source
   bundles; route the legacy package command through the full release gate.
 - Expand the README, add a security policy, and record review coverage and v1 gates.
+- Make the DPI fixture respect desktop window-size limits while retaining geometry
+  and draft assertions; document replaceable development snapshots without migration promises.
 
 Configuration schema, mod ID, saved preferences and emergency shortcut are unchanged.
 This is a development prerelease; physical desktop/hardware qualification remains open.

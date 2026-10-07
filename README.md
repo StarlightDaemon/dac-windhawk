@@ -44,7 +44,7 @@ attribution is heuristic; advanced overrides and profiles can change the policy.
 ## Install and get started
 
 **Requirements:** Windows with [Windhawk](https://windhawk.net/) installed. The
-build/host integration is qualified against **Windhawk 1.7.3**; other versions and
+build tools and host adapter target **Windhawk 1.7.3**; other versions and
 ARM64 are unqualified. Maintainer tools are unnecessary for installation.
 
 1. Open [Releases](https://github.com/StarlightDaemon/dac-windhawk/releases) and
@@ -67,7 +67,9 @@ input scopes for intentional per-display overrides.
 Replace the complete local mod source with the new release's `.wh.cpp`, compile,
 and confirm the version in Windhawk. Read the changelog before updating. The
 technical ID is `dac-windhawk`; settings live in `%LOCALAPPDATA%\DAC-Windhawk`.
-Keep a backup of that folder before testing upgrades. Disable older renamed
+Development releases may require a clean configuration; migration is not guaranteed.
+Follow each release's reset instructions. An optional backup lets you keep a test
+configuration for your own reference. Disable older renamed
 test mods and the standalone OLED Aegis controller before enabling DAC.
 
 The `-source.zip` release asset includes source, docs, tests, pinned fixtures and
