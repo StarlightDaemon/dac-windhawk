@@ -1,5 +1,12 @@
 # Acceptance evidence ledger
 
+This ledger retains historical test checkpoints. Current review/remediation is
+in [Adversarial review](ADVERSARIAL_REVIEW.md), and the
+[development compatibility policy](RELEASING.md#development-compatibility-policy)
+permits replacement versions and clean configurations without migration work.
+Historical migration observations below are not current release requirements.
+Physical runtime/desktop/hardware gaps remain distinct from automated checks.
+
 ## RC3 Fujin and icon refinement — 2026-10-05
 
 Both architectures compile warning-clean; all 15 x86 release groups pass,

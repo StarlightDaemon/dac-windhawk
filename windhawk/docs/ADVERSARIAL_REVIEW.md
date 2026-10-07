@@ -99,7 +99,9 @@ fixture now respects that limit and Quick setup's explicit 620-logical-pixel
 minimum (which Windows gives precedence when synthetic DPI and real desktop
 constraints conflict). It retains every geometry, draft and font assertion,
 and logs actual/requested bounds on failure. The changed
-Advanced and nextbeta groups passed locally; hosted results remain in the run history.
+Advanced and nextbeta groups passed locally. The complete local rerun and
+[hosted run 37588586026](https://github.com/StarlightDaemon/dac-windhawk/actions/runs/37588586026)
+at commit `bb311e4` then passed both architectures and every required gate.
 
 The [GitHub Actions history](https://github.com/StarlightDaemon/dac-windhawk/actions/workflows/release.yml)
 records hosted results against exact commits. The source bundle carries exact

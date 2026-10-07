@@ -153,17 +153,17 @@ From the repository root in PowerShell:
 ./windhawk/tools/produce-release.ps1
 ```
 
-This inventories the host, builds 0.1.6 into `build/windhawk/dac-0.1.6` and
-`dac-0.1.6-x64`, runs sixteen groups on each architecture, checks RC4 rollback
+This inventories the host, reads the source version, builds into
+`build/windhawk/dac-VERSION` and `dac-VERSION-x64`, runs sixteen groups on each architecture, checks RC4 rollback
 and 34 evidence-rejection cases, and creates a verified source ZIP.
 It does not install, publish, change startup or operate physical power.
 Harness events/singletons are isolated; tray and hotkey registration are
 simulated so tests do not commandeer the installed mod's controls.
 
 ```powershell
-./windhawk/tools/diagnose-beta.ps1 -OutputName dac-0.1.6
-./windhawk/tools/build-production.ps1 -OutputName dac-0.1.6-x64 -Architecture x86-64
-./windhawk/tools/verify-beta.ps1 -Archive ./build/windhawk/dac-0.1.6/dac-windhawk-0.1.6-source.zip
+./windhawk/tools/diagnose-beta.ps1
+./windhawk/tools/build-production.ps1 -Architecture x86-64 # focused development build
+./windhawk/tools/verify-beta.ps1 # current release bundle, after produce-release
 ```
 
 Existing *-beta.ps1 diagnostic/package tool names are retained. Use the explicit
@@ -182,7 +182,8 @@ window heuristics, not browser-tab inspection.
 The standalone edition is unchanged. See [provenance](docs/PROVENANCE.md),
 [dependency notices](docs/THIRD_PARTY_NOTICES.md) and
 [license status](LICENSE-STATUS.md). The selected product name is Display Activity
-Controls for Windhawk; public licensing and publication remain separate decisions.
+Controls for Windhawk, published under MIT. Development versions may replace
+earlier configurations without migration; see [the release policy](docs/RELEASING.md).
 
 ## License
 
