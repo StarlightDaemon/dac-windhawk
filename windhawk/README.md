@@ -13,8 +13,13 @@ wakes its display; keyboard activity credits the pointer and focused displays.
 Existing configurations: enable **Independent display input** in Quick setup and
 Save. In Advanced settings, use **Use global setting** for each monitor's input
 scope to inherit it; explicit overrides and profiles still take precedence.
-Unattributed input conservatively wakes all displays. A spanning presentation is
+In independent mode, unattributed or delayed input does not wake unrelated
+displays; focus changes alone do not reset idle timers. Use Stop/wake or the
+emergency shortcut if input cannot be attributed. A spanning presentation is
 one shared session, so independent waking applies to separate presentations.
+
+See [readiness and open loops](docs/OPEN_LOOPS.md) for compatibility coverage,
+the independent-wake qualification steps, deferred features and maintenance work.
 
 Saved timers and per-monitor overrides retain their values. See the
 [default timing and manufacturer guidance](docs/IDLE_DEFAULT_BETA6.md).

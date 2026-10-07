@@ -1,10 +1,14 @@
 # Compatibility observations
 
+For the current architecture/toolchain matrix and qualification work, use
+[Readiness and open loops](OPEN_LOOPS.md). The measurements below are historical
+evidence, not current support declarations.
+
 **No stock saver is qualified as supported yet.** Installed copies passed the limited process/window probe below; visible output, full bounds, interactive behavior and simultaneous actual displays remain unverified. The plan (historical internal record; not bundled) requires those observations before a support promise. Details and exact commands are in [PHASE_1_REPORT](PHASE_1_REPORT.md).
 
 ## Environment measured on 2026-10-04
 
-Current RC1 evidence is in [V1_RELEASE_REPORT.md](V1_RELEASE_REPORT.md), dated
+Historical RC1 evidence is in [V1_RELEASE_REPORT.md](V1_RELEASE_REPORT.md), dated
 2026-10-05. Both architectures pass all fifteen checks; all six native stock
 savers again pass hidden structural probes. Custom .scr compatibility remains
 preview-dependent and unqualified. Native photo frames and concurrent fixture

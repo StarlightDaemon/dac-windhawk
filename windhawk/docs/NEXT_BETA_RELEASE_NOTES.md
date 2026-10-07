@@ -68,7 +68,9 @@ Per-display activity choices are:
 - **Foreground display:** real input credits outputs substantially overlapped by
   the foreground window. A window crossing outputs can credit more than one.
 
-Missing, uncertain or late attribution conservatively credits eligible outputs.
+Historical behavior below is superseded for input attribution by
+[0.2.1 and the independent-wake repair](OPEN_LOOPS.md#independent-monitor-wake).
+Missing, uncertain or late attribution originally credited eligible outputs.
 An unchanged focused window does not continuously generate activity. Sticky
 manual presentations ignore activity until Stop, their toggle shortcut, pause,
 session/topology cleanup or emergency exit. Emergency exit remains

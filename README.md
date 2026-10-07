@@ -38,14 +38,17 @@ while another shows black, a moving scene, photos or an installed screensaver.
 | Optional power | Experimental per-display DDC/CI off/wake, explicit opt-in and failure quarantine |
 
 Mouse activity wakes its display; keyboard activity also credits the focused
-display. Unattributed input wakes displays conservatively. Application/media
+display. In independent mode, unattributed or delayed input does not wake unrelated
+displays; focus changes alone do not count as input. Application/media
 attribution is heuristic; advanced overrides and profiles can change the policy.
 
 ## Install and get started
 
 **Requirements:** Windows with [Windhawk](https://windhawk.net/) installed. The
 build tools and host adapter target **Windhawk 1.7.3**; other versions and
-ARM64 are unqualified. Maintainer tools are unnecessary for installation.
+ARM64 runtime behavior are unqualified. ARM64 has a separate compile-only probe;
+see the [readiness and open loops report](windhawk/docs/OPEN_LOOPS.md).
+Maintainer tools are unnecessary for installation.
 
 1. Open [Releases](https://github.com/StarlightDaemon/dac-windhawk/releases) and
    download **`dac-windhawk.wh.cpp`** from the release you want to test.
@@ -102,7 +105,7 @@ physical power button. See [security and trust boundaries](SECURITY.md).
 | Configure everyday behavior | [Controls and usage](windhawk/README.md) |
 | See changes and release numbering | [Changelog](windhawk/CHANGELOG.md) · [Release guide](windhawk/docs/RELEASING.md) |
 | Build or contribute | [Contributor guide](CONTRIBUTING.md) |
-| Assess readiness and known limits | [Adversarial review](windhawk/docs/ADVERSARIAL_REVIEW.md) · [Compatibility](windhawk/docs/COMPATIBILITY.md) |
+| Assess readiness and known limits | [Open loops](windhawk/docs/OPEN_LOOPS.md) · [Adversarial review](windhawk/docs/ADVERSARIAL_REVIEW.md) · [Compatibility](windhawk/docs/COMPATIBILITY.md) |
 | Understand source/dependency history | [Provenance](windhawk/docs/PROVENANCE.md) · [Notices](windhawk/docs/THIRD_PARTY_NOTICES.md) |
 | Report a problem | [Issues](https://github.com/StarlightDaemon/dac-windhawk/issues) · [Security reporting](SECURITY.md) |
 

@@ -65,7 +65,14 @@ compiler. The separate publishing job receives only successful run assets and
 has `contents: write`; it runs only on pushed version tags. Shell arguments use
 environment variables rather than interpolated event text.
 
-A tag runs the same validation and then creates a GitHub Release with:
+A tag runs the same validation before publishing.
+
+CI also requires an ARM64 compile/link/PE probe. That probe executes no ARM code
+and creates no runtime or release receipt; logs are retained as the separate
+`compatibility-evidence` Actions artifact. The distributable evidence package
+continues to qualify the x86/x64 harness routes only.
+
+The release contains:
 
 - `dac-windhawk.wh.cpp`: the exact tested installation source;
 - `dac-windhawk-VERSION-source.zip`: source, tests, tools, dependencies, docs and

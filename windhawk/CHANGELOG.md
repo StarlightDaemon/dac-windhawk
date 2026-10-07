@@ -4,6 +4,24 @@ This records the Windhawk edition. Earlier version labels were internal
 development labels; they are retained for evidence lookup. They do not establish
 a completed 1.0 release. No historical tag or published release is fabricated.
 
+## 0.2.1 — 2026-10-07 — independent wake and compatibility checks
+
+- Stop unattributed fallback and delayed input from waking unrelated displays
+  in independent mode. Remove foreground changes as a separate idle reset.
+- Regress the timer/raw-input ordering across three displays and ensure unrelated
+  contained saver sessions survive activity on the primary display.
+- Add an isolated x86/x64/ARM64 compile/link/PE compatibility probe and an ARM64
+  CI check. Keep runtime qualification and release evidence separate.
+- Publish the implemented-feature inventory, deferred features, maintenance
+  cadence and remaining release gates in the open loops report.
+
+No configuration reset is required. Older saved shared-input settings and
+per-display/profile overrides remain explicit choices: enable Independent display
+input and use inherited or pointer scopes for per-display mouse wake. Unknown
+input no longer provides a global wake in independent mode; use Stop/wake or the
+emergency shortcut if input cannot be attributed. ARM64 execution and Windhawk
+2.0 alpha remain unqualified.
+
 ## 0.2.0 — 2026-10-07 — release engineering and adversarial review
 
 - Create unpredictable, exclusive temporary files for settings, recovery markers,

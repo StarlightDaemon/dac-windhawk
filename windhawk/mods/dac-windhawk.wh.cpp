@@ -2,7 +2,7 @@
 // @id              dac-windhawk
 // @name            Display Activity Controls for Windhawk
 // @description     Protect idle monitors independently with per-display timers, screensavers, black screens, and photo slideshows. Includes input and media activity detection, quick setup, and system tray controls.
-// @version         0.2.0
+// @version         0.2.1
 // @author          Display Activity Controls for Windhawk contributors
 // @include         windhawk.exe
 // @architecture    x86
@@ -61,8 +61,9 @@ New configurations use **60 seconds (one minute)**; saved timers keep their valu
 **Independent display input** is on for new configurations. Mouse activity wakes
 its display; keyboard activity also credits the focused display. For an existing
 configuration, enable that shared option in Quick setup and save. Advanced
-per-display input overrides and profiles still apply. Unattributed input wakes
-all displays conservatively.
+per-display input overrides and profiles still apply. Unattributed or delayed
+input does not wake unrelated displays in independent mode. If input cannot be
+attributed, use the display's Stop/wake command or the emergency shortcut.
 
 ## Choose how your displays behave
 
@@ -172,7 +173,7 @@ the Quick setup review, fresh-install instructions, `PROVENANCE.md` and
 #endif
 
 namespace dac {
-constexpr char kVersion[]="0.2.0"; // Kept in sync with @version by tools/version.ps1.
+constexpr char kVersion[]="0.2.1"; // Kept in sync with @version by tools/version.ps1.
 using Time = uint64_t;
 struct Preference {
     bool enabled=true; int saver=-1; // -1: native black
@@ -462,11 +463,13 @@ struct Controller {
     void Snooze(Time now,int minutes){snoozeUntil=minutes>0?now+static_cast<Time>(minutes)*60000:0;for(auto& [id,n]:nodes){(void)id;if(!n.manual)n={now,++serial,State::Desktop,false};}}
     void Input(Time now,const std::set<std::string>& targets,bool certain,Time eventAt=UINT64_MAX) {
         for(auto& [id,n]:nodes){auto p=Pref(id);bool local=p.input<0?PolicyNow().perInput:p.input!=0;
-            if(!n.sticky&&(!n.manual||eventAt>n.last)&&(!local||!certain||targets.contains(id)||id=="@span"))n={now,++serial,State::Desktop,false};}
+            if(!n.sticky&&(!n.manual||eventAt>n.last)&&(!local||(certain&&targets.contains(id))||id=="@span"))n={now,++serial,State::Desktop,false};}
     }
     void Activity(Time now,bool keyboard,const std::string& cursor,const std::set<std::string>& focus,bool certain,Time eventAt=UINT64_MAX) {
         for(auto& [id,n]:nodes){auto p=Pref(id);int mode=p.input<0?(PolicyNow().perInput?1:0):p.input;
-            bool hit=mode==0||!certain||(mode==2?cursor.empty()||cursor==id:mode==3?focus.empty()||focus.contains(id):cursor.empty()||cursor==id||(keyboard&&(focus.empty()||focus.contains(id))));
+            // Unknown or queued observations cannot locate activity on a display.
+            // In particular, LASTINPUTINFO may advance before WM_INPUT is read.
+            bool hit=mode==0||(certain&&(mode==2?cursor==id:mode==3?focus.contains(id):cursor==id||(keyboard&&focus.contains(id))));
             if(!n.sticky&&(!n.manual||eventAt>n.last)&&(hit||id=="@span"))n={now,++serial,State::Desktop,false};}
     }
     int Presentation(const Preference& p)const{return p.batteryBlack&&powerSource==PowerSource::DC?-1:p.saver;}
@@ -1458,11 +1461,11 @@ void Input(HRAWINPUT handle) {
 }
 void CheckInputFallback(){LASTINPUTINFO last{sizeof(last),0};if(!GetLastInputInfo(&last)){controller.Input(GetTickCount64(),{},false);return;}if(last.dwTime!=lastInputStamp&&last.dwTime!=rawStamp)controller.Input(GetTickCount64(),{},false);lastInputStamp=last.dwTime;}
 void ObserveForeground() {
-    static HWND previous=nullptr;HWND window=GetForegroundWindow();DWORD pid=0;GetWindowThreadProcessId(window,&pid);controller.fullscreen.clear();
+    HWND window=GetForegroundWindow();DWORD pid=0;GetWindowThreadProcessId(window,&pid);controller.fullscreen.clear();
     auto ids=ForegroundDisplays(window);bool owned=pid==GetCurrentProcessId()||IsOwned(pid);controller.foreground={ProcessIdentity(pid),ids,window!=nullptr,owned};if(owned){controller.foreground.app={};controller.foreground.monitors.clear();}
     RECT bounds{};if(window&&!owned&&IsWindowVisible(window)&&!IsIconic(window)&&GetWindowRect(window,&bounds))for(auto& d:displays)if(bounds.left<=d.rect.left&&bounds.top<=d.rect.top&&bounds.right>=d.rect.right&&bounds.bottom>=d.rect.bottom)controller.fullscreen.insert(d.id);
-    if(window!=previous&&!owned)for(auto& [id,n]:controller.nodes){auto p=controller.Pref(id);int mode=p.input<0?(controller.PolicyNow().perInput?1:0):p.input;if(mode==1&&ids.contains(id)&&!n.sticky&&!n.manual)n={GetTickCount64(),++controller.serial,State::Desktop,false};}
-    previous=window;
+    // Focus changes (including those caused by dismissing a presentation) are
+    // observations for media/profile rules, not independent input events.
 }
 bool Tray(bool remove=false) {
 #ifdef DAC_HARNESS

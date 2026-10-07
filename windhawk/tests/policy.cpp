@@ -21,7 +21,7 @@ void NextPolicy() {
     Policy audio;audio.rules={{1,false,false,app.path}};Media m{1,true,false,false,{}};AddAudioContribution(m,audio,app,false,{"A"});Check(!m.any,"known source display audio ignore");AddAudioContribution(m,audio,other,false,{"A"});Check(m.any&&m.monitors.contains("A"),"ignored source never erases nonignored player");
     m={1,true,false,false,{}};AddAudioContribution(m,audio,app,true,{"A"});Check(m.any&&m.ambiguous,"multi-process browser source cannot be ignored");m={1,true,false,false,{}};AddAudioContribution(m,audio,{},false,{"A"});Check(m.any&&m.ambiguous,"denied/exited process stays conservative");m={1,true,false,false,{}};AddAudioContribution(m,audio,app,false,{});Check(m.any&&m.ambiguous,"display rule cannot discard unattributed source");audio.rules[0].global=true;m={1,true,false,false,{}};AddAudioContribution(m,audio,app,false,{});Check(!m.any,"global exact-source ignore includes known unattributed source");AddAudioContribution(m,audio,other,false,{"B"},true);Check(!m.any,"owned playback excluded");
     Controller p;p.config.media=false;p.config.automatic=true;p.config.timeout=5;p.Topology({"A","B","C"},0);
-    for(int mode=0;mode<=3;++mode){p.Reset(0);for(auto id:{"A","B","C"})p.config.monitors[id].input=mode;p.Activity(100,true,"A",{"B","C"},true);Check((p.nodes["A"].last==100)==(mode!=3),"keyboard pointer mode attribution");Check((p.nodes["B"].last==100)==(mode!=2),"keyboard foreground overlap attribution");p.Activity(200,true,"",{},true);Check(p.nodes["A"].last==200&&p.nodes["B"].last==200,"missing attribution falls back to all");}
+    for(int mode=0;mode<=3;++mode){p.Reset(0);for(auto id:{"A","B","C"})p.config.monitors[id].input=mode;p.Activity(100,true,"A",{"B","C"},true);Check((p.nodes["A"].last==100)==(mode!=3),"keyboard pointer mode attribution");Check((p.nodes["B"].last==100)==(mode!=2),"keyboard foreground overlap attribution");auto before=p.nodes;p.Activity(200,true,"",{},true);Check(mode==0?(p.nodes["A"].last==200&&p.nodes["B"].last==200):(p.nodes["A"].last==before["A"].last&&p.nodes["B"].last==before["B"].last),"missing attribution only credits explicit shared mode");}
     p.config.monitors.clear();p.Reset(0);Check(p.Explain("A",{},4999).kind==DeadlineKind::Activation&&p.Explain("A",{},4999).remaining==1,"idle explanation exact boundary");p.unidentified.insert("A");Check(p.Explain("A",{},5000).primary==Reason::Disabled&&p.Explain("A",{},5000).kind==DeadlineKind::None,"unidentified has no misleading countdown");p.unidentified.clear();
     p.config.rules={{0,false,false,app.path}};p.foreground={app,{"A"},true};p.fullscreen={"A"};p.config.monitors["A"].fullscreen=true;p.config.monitors["A"].media=1;auto e=p.Explain("A",{},5000);Check(e.primary==Reason::App&&(e.flags&(1u<<unsigned(Reason::Fullscreen)))&&(e.flags&(1u<<unsigned(Reason::Stale)))&&e.kind==DeadlineKind::None,"coexisting inhibition flags and deterministic primary");
     p.foreground.app={};Check(p.Explain("A",{},5000).primary==Reason::Stale,"unknown process is not a guessed exception");p.foreground.owned=true;p.config.monitors["A"].fullscreen=false;p.config.monitors["A"].media=0;Check(p.Explain("A",{},5000).primary==Reason::Idle,"owned presentation never self-inhibits app rule");
@@ -42,6 +42,19 @@ void NextPolicy() {
 
 void IndependentDisplayInput(){
     const std::vector<std::string> ids={"A","B","C"};
+    Controller fallback;fallback.Topology(ids,0);for(auto& id:ids)fallback.Manual(id,10);
+    auto bGeneration=fallback.nodes["B"].generation,cGeneration=fallback.nodes["C"].generation;
+    // The timer can observe LASTINPUTINFO before the corresponding WM_INPUT.
+    // A missing/raw-delayed event must never become activity on every display.
+    fallback.Input(20,{},false);
+    fallback.Activity(21,false,"A",{"B"},true);
+    fallback.Input(22,{},false);
+    fallback.Activity(23,false,"A",{"B"},false);
+    Check(fallback.nodes["A"].state==State::Desktop&&Running(fallback.nodes["B"].state)&&Running(fallback.nodes["C"].state)&&fallback.nodes["B"].generation==bGeneration&&fallback.nodes["C"].generation==cGeneration,"unattributed fallback before/after primary mouse input preserves other idle displays");
+    fallback.Activity(24,true,"A",{},true);
+    Check(Running(fallback.nodes["B"].state)&&Running(fallback.nodes["C"].state),"missing keyboard focus never expands to every display");
+    fallback.config.monitors["B"].input=0;fallback.nodes["B"].manual=false;fallback.Input(25,{},false);
+    Check(!Running(fallback.nodes["B"].state)&&Running(fallback.nodes["C"].state),"explicit shared input still accepts unattributed activity");
     for(auto& first:ids)for(auto& second:ids){
         if(first==second)continue;
         Controller local;Check(local.config.perInput,"fresh policy defaults to independent display input");
@@ -127,7 +140,7 @@ int main() {
         quiet.at=10000;p.Tick(10000,quiet);Check(p.nodes["A"].state==State::Desktop,"between-poll input survives 10s polling");
         p.Input(10100,{"A","B"},true);Check(!p.Any(),"keyboard cursor plus foreground");
         p.Manual("A",10101);p.Input(10102,{"A"},true,10100);Check(p.Any(),"queued click preceding manual start cannot immediately dismiss it");
-        p.Input(10102,{},false);Check(!p.Any(),"unknown input conservatively dismisses");
+        p.Input(10102,{},false);Check(p.Any()==perInput,"unknown input preserves independent presentation, shared mode wakes");p.Input(10103,{"A"},true);Check(!p.Any(),"attributed input dismisses independent presentation");
         p.Reset(0);Media playing{5000,true,true,false,{"A"}};p.Tick(5000,playing);
         Check(Running(p.nodes["A"].state)==!media,"global media setting");
         Check(Running(p.nodes["B"].state)==(!media||perMedia),"per monitor media setting");

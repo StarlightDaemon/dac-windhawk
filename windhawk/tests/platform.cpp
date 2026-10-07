@@ -25,7 +25,14 @@ LRESULT SnapshotSessions() {
     for(auto& r:runs) if(r->window&&IsWindowVisible(r->window)) snapshot.hidden=false;
     return 1;
 }
-LRESULT DismissA() {controller.Input(GetTickCount64(),{"A"},true);Reconcile();return 1;}
+LRESULT DismissA() {
+    auto now=GetTickCount64();
+    controller.Input(now,{},false); // timer fallback before raw input
+    controller.Activity(now,false,"A",{"B"},true);
+    controller.Input(now,{},false); // fallback after raw input
+    controller.Activity(now,false,"A",{"B"},false); // delayed queue observation
+    Reconcile();return 1;
+}
 LRESULT StopSessions() {Reset();Reconcile();return 1;}
 LRESULT HungSession() {fixtureModes["B"]=L"--preview-hung";controller.Manual("B",GetTickCount64());Reconcile();return 1;}
 LRESULT PauseSessions() {controller.paused=true;controller.Tick(GetTickCount64(),{});Reconcile();return 1;}

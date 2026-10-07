@@ -22,6 +22,7 @@ no code-coverage percentage is claimed.
 | Gate | Required for a passing run |
 | --- | --- |
 | Compile | x86 and x86-64 mod/harness builds with warnings treated as errors, using the pinned Windhawk 1.7.3 toolchain |
+| ARM64 probe | Mod and both harnesses cross-compile/link with ARM64 PE headers; no ARM execution or host support claim |
 | Runtime tests | 16 groups per architecture, including storage, policy, process containment, lifecycle and hidden native UI checks |
 | Regression and packaging | Version checks, both historical-parser checks, 34 evidence-rejection cases and complete archive verification |
 | Release publication | A matching version tag repeats validation, then publishes source, evidence ZIP and download checksums |
@@ -45,6 +46,20 @@ clang **20.1.3** compiler installed at the default path. The tools support a
 `-WindhawkRoot` override. Other toolchain versions and ARM64 are unqualified.
 No sibling theme checkout or private historical archive is required: the
 [hashed source fixtures](windhawk/docs/FIXTURE_PROVENANCE.md) are included.
+
+For architecture compatibility without running binaries:
+
+```powershell
+./windhawk/tools/probe-compatibility.ps1 # x86, x86-64, arm64
+./windhawk/tools/probe-compatibility.ps1 -Architecture arm64
+```
+
+The probe records source/input/compiler/header/import-library hashes, arguments,
+binary hashes and PE machine values in a unique `build/compatibility/` directory.
+A failure records a failed receipt, never release evidence. It accepts the
+reviewed 1.7.3 compiler recipe only. CI retains probe logs separately from release
+assets. No probe output can satisfy the production packaging gate. Read
+[open loops](windhawk/docs/OPEN_LOOPS.md) before expanding host or OS support claims.
 
 From the checkout root in PowerShell 7:
 

@@ -47,6 +47,19 @@ jobs:
         run: |
           ./windhawk/tools/produce-release.ps1 -WindhawkRoot 'C:\dac-toolchain'
           ./windhawk/tools/prepare-assets.ps1
+      - name: Cross-compile ARM64 compatibility probe
+        shell: pwsh
+        run: ./windhawk/tools/probe-compatibility.ps1 -WindhawkRoot 'C:\dac-toolchain' -Architecture arm64
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: compatibility-evidence
+          path: |
+            build/compatibility/**/compatibility.json
+            build/compatibility/**/compiler-version.txt
+            build/compatibility/**/*.log
+          if-no-files-found: ignore
+          retention-days: 14
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-assets
