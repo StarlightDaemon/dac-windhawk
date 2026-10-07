@@ -54,7 +54,7 @@ critical/high defect was established in this review. That does not establish abs
 
 1. **Actual host and hardware qualification is incomplete.** Record actual
    Windhawk load/unload, integration settings, multi-monitor attribution, mixed DPI,
-   high contrast/screen reader, SDR/HDR, AC/DC, suspend/resume, and DDC off/wake/fault
+   high contrast/screen reader, small work areas at high DPI, SDR/HDR, AC/DC, suspend/resume, and DDC off/wake/fault
    recovery before claiming v1 support for those combinations. Existing positive
    operator observations are useful but narrower than this matrix.
 2. **Custom screensavers execute with host privileges.** Job containment is lifetime
@@ -95,8 +95,10 @@ specification; the complete fresh rerun above passed. Requirements were not rela
 
 The first hosted run reached the Advanced group and exposed a DPI fixture that
 requested widths beyond Windows' tracking limit on its 1024-pixel desktop. The
-fixture now bounds its requested width using that limit, retains every geometry,
-draft and font assertion, and logs actual/requested bounds on failure. The changed
+fixture now respects that limit and Quick setup's explicit 620-logical-pixel
+minimum (which Windows gives precedence when synthetic DPI and real desktop
+constraints conflict). It retains every geometry, draft and font assertion,
+and logs actual/requested bounds on failure. The changed
 Advanced and nextbeta groups passed locally; hosted results remain in the run history.
 
 The [GitHub Actions history](https://github.com/StarlightDaemon/dac-windhawk/actions/workflows/release.yml)

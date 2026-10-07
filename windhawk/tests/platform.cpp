@@ -111,6 +111,9 @@ void ExerciseSettingsDpi(HWND window,int editId,SettingsLayout& layout,int& scro
         // Keep requested size within Windows' maximum tracking dimensions on
         // small CI desktops. Negative placement and every DPI are still tested.
         int width=std::min(MulDiv(700,dpi,96),std::max(300,GetSystemMetrics(SM_CXMAXTRACK)-32));
+        // Quick setup explicitly requires 620 logical pixels; Windows honors
+        // that minimum even when a synthetic DPI exceeds this desktop's scale.
+        if(window==setupWindow)width=std::max(width,MulDiv(620,dpi,96));
         RECT suggested{-1500,70,-1500+width,470};
         auto previousFont=reinterpret_cast<HFONT>(SendMessageW(field,WM_GETFONT,0,0));
         SendMessageW(window,WM_DPICHANGED,MAKEWPARAM(dpi,dpi),reinterpret_cast<LPARAM>(&suggested));
