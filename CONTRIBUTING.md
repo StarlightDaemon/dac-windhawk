@@ -12,11 +12,12 @@ according to [SECURITY.md](SECURITY.md).
 
 ## Build and test status
 
-The README's **build & tests** badge reports the latest `main` push through
+The README's **CI** badge reports the latest `main` push through
 [Validate and release](https://github.com/StarlightDaemon/dac-windhawk/actions/workflows/release.yml?query=branch%3Amain+event%3Apush).
 It changes with the workflow result; click it for the exact commit and logs.
-The architecture and test-count badges describe the required suite. They are
-not separate live results or a code-coverage percentage.
+It covers compilation, tests and packaging together. The **Windows** badge
+identifies the two build targets. Detailed test counts are listed below;
+no code-coverage percentage is claimed.
 
 | Gate | Required for a passing run |
 | --- | --- |
