@@ -1,0 +1,6 @@
+/build/
+/.raiden/
+.env
+.env.*
+*.user
+*.suo
