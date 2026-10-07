@@ -12,6 +12,8 @@ a completed 1.0 release. No historical tag or published release is fabricated.
   contained saver sessions survive activity on the primary display.
 - Add an isolated x86/x64/ARM64 compile/link/PE compatibility probe and an ARM64
   CI check. Keep runtime qualification and release evidence separate.
+- Refresh pinned GitHub Actions to Node 24 releases; retain read-only validation
+  permissions and enforce artifact download digest checks.
 - Publish the implemented-feature inventory, deferred features, maintenance
   cadence and remaining release gates in the open loops report.
 

@@ -128,6 +128,13 @@ and secure locking by overlay are not product promises.
 
 ## Maintenance plan
 
+The hosted run exposed deprecated Node 20 action runtimes. The workflow pins are
+updated to the reviewed Node 24 releases of
+[checkout](https://github.com/actions/checkout/releases/tag/v7.0.1),
+[upload-artifact](https://github.com/actions/upload-artifact/releases/tag/v7.0.1)
+and [download-artifact](https://github.com/actions/download-artifact/releases/tag/v8.0.1).
+The download action's default digest-mismatch failure remains enabled.
+
 The 2026-10-07 local 0.2.1 validation passed warning-as-error x86/x64 builds,
 all sixteen groups on each architecture, both historical-parser runs, version
 regressions and 34 packaging rejection cases. The source archive verified with
