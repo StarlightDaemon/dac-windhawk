@@ -66,7 +66,28 @@ verifies `build/windhawk/dac-0.1.6/dac-windhawk-0.1.6-source.zip`.
 The tests use hidden windows, fixture processes and simulated hardware. No
 physical monitor-power tests or installation are performed by that command.
 
-Validation results for the clean publication checkout will be recorded here.
+Validation completed in a fresh clone of the destination repository using the
+bundled fixtures: warning-as-error x86 and x86-64 builds, all sixteen test groups
+on each, both historical parser regression runs and all 34 packaging rejection
+cases passed. The evidence archive verifies 201 entries. No sibling Fujin checkout
+or original ignored RC4 archive was used. PowerShell syntax, publication-document
+links and staged code/fixture byte equality were also checked.
+
+The independent-input tests cover all six ordered pairs of three monitors,
+mouse activity with a different foreground display, keyboard pointer/focus scope,
+and Quick setup draft/save/reopen/discard behavior. Unattributed input still wakes
+all displays conservatively. Physical remote-machine input remains distinct from
+these policy and hidden-window checks.
+
+Source SHA-256 for `dac-windhawk.wh.cpp`:
+`bc0dfa506b34bab146ac5ef377354bc2dd5dd0104bb81c24f604cac4b349cb1f`.
+The local run log is `build/research/publication-independent-0.1.6.log`; generated
+logs and machine-specific evidence receipts are not committed. Release downloads
+use the exact standalone source plus GitHub's tagged repository source archives.
+All installation/build inputs controlled by this project are included. Windows,
+Windhawk 1.7.3 and the maintainer PowerShell environment remain prerequisites;
+Windows components and third-party installed compiler/runtime binaries are not
+redistributed here.
 
 ## Remaining qualification
 
