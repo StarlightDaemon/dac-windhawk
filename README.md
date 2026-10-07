@@ -3,10 +3,20 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/StarlightDaemon/dac-windhawk/actions/workflows/release.yml"><img src="https://github.com/StarlightDaemon/dac-windhawk/actions/workflows/release.yml/badge.svg" alt="Build and release checks"></a>
-  <a href="https://github.com/StarlightDaemon/dac-windhawk/releases"><img src="https://img.shields.io/github/v/release/StarlightDaemon/dac-windhawk?include_prereleases&amp;color=7950f2" alt="Latest release including prereleases"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-7950f2" alt="MIT license"></a>
-  <img src="https://img.shields.io/badge/platform-Windows-343a40" alt="Windows">
+  <a href="https://github.com/StarlightDaemon/dac-windhawk/actions/workflows/release.yml?query=branch%3Amain+event%3Apush"><img src="https://img.shields.io/github/actions/workflow/status/StarlightDaemon/dac-windhawk/release.yml?branch=main&amp;event=push&amp;label=build%20%26%20tests&amp;logo=githubactions&amp;style=flat-square" alt="Build and tests: live main-branch status"></a>
+  <a href="https://github.com/StarlightDaemon/dac-windhawk/releases"><img src="https://img.shields.io/github/v/release/StarlightDaemon/dac-windhawk?include_prereleases&amp;color=7950f2&amp;style=flat-square" alt="Latest release including prereleases"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-7950f2?style=flat-square" alt="MIT license"></a>
+</p>
+
+<p align="center">
+  <a href="#install-and-get-started"><img src="https://img.shields.io/badge/platform-Windows-343a40?style=flat-square" alt="Windows"></a>
+  <a href="CONTRIBUTING.md#build-and-test-status"><img src="https://img.shields.io/badge/builds-x86%20%7C%20x64-7950f2?style=flat-square" alt="Build targets: x86 and x64"></a>
+  <a href="CONTRIBUTING.md#build-and-test-status"><img src="https://img.shields.io/badge/test%20groups-16%20%C3%97%202-7950f2?style=flat-square" alt="Test scope: 16 groups on each of two architectures"></a>
+  <a href="CONTRIBUTING.md#build-and-test-status"><img src="https://img.shields.io/badge/package%20rejection%20cases-34-7950f2?style=flat-square" alt="Packaging test scope: 34 rejection cases"></a>
+</p>
+
+<p align="center">
+  <a href="CONTRIBUTING.md#build-and-test-status">Build &amp; test status explained</a>
 </p>
 
 <p align="center">
