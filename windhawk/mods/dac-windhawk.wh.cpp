@@ -1,7 +1,7 @@
 // ==WindhawkMod==
 // @id              dac-windhawk
 // @name            Display Activity Controls for Windhawk
-// @description     Activity-aware display protection and per-monitor screensavers
+// @description     Protect idle monitors independently with per-display timers, screensavers, black screens, and photo slideshows. Includes input and media activity detection, quick setup, and system tray controls.
 // @version         0.1.6
 // @author          Display Activity Controls for Windhawk contributors
 // @include         windhawk.exe
