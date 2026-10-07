@@ -1,5 +1,8 @@
 # Repository and release record — 0.1.6
 
+Historical first-publication record. Current maintainer instructions are in
+[Releasing](RELEASING.md); the root README and source metadata describe current work.
+
 The operator authorized publication to
 [StarlightDaemon/dac-windhawk](https://github.com/StarlightDaemon/dac-windhawk)
 on 2026-10-07, superseding the earlier hold on commits and pushes. The destination

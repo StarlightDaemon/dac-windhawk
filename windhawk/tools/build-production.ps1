@@ -1,4 +1,4 @@
-param([string]$WindhawkRoot='C:\Program Files\Windhawk',[string]$SourceFile='',[ValidateSet('production','beta1','beta2','beta2-x64','rc1','rc1-x64','rc2','rc2-x64','rc3','rc3-x64','rc4','rc4-x64','nextbeta','nextbeta-x64','nextbeta2','nextbeta2-x64','nextbeta3','nextbeta3-x64','nextbeta4','nextbeta4-x64','dac-beta5','dac-beta5-x64','dac-beta6','dac-beta6-x64','dac-0.1.6','dac-0.1.6-x64')][string]$OutputName='production',[ValidateSet('host','x86','x86-64')][string]$Architecture='host',[string]$ModId='dac-windhawk',[string]$FujinRoot='')
+param([string]$WindhawkRoot='C:\Program Files\Windhawk',[string]$SourceFile='',[ValidatePattern('^[a-zA-Z0-9][a-zA-Z0-9.-]*$')][string]$OutputName='production',[ValidateSet('host','x86','x86-64')][string]$Architecture='host',[string]$ModId='dac-windhawk',[string]$FujinRoot='')
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'evidence.ps1')
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path

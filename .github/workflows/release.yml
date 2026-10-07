@@ -1,0 +1,81 @@
+name: Validate and release
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Validate version and tag
+        shell: pwsh
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if ($env:REF_TYPE -eq 'tag') {
+            ./windhawk/tools/version.ps1 -Tag $env:REF_NAME
+          } else {
+            ./windhawk/tools/version.ps1
+          }
+      - name: Install pinned portable build toolchain
+        shell: pwsh
+        run: |
+          $installer = Join-Path $env:RUNNER_TEMP 'windhawk_setup_offline.exe'
+          Invoke-WebRequest 'https://github.com/ramensoftware/windhawk/releases/download/v1.7.3/windhawk_setup_offline.exe' -OutFile $installer
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant() -cne '4d93016570f982326eebdfc9068e924ff21f6448534ea32672bb4c1d52a8193b') { throw 'Toolchain installer hash mismatch' }
+          $install = Start-Process -FilePath $installer -ArgumentList '/S /PORTABLE /D=C:\dac-toolchain' -WindowStyle Hidden -PassThru
+          if (!$install.WaitForExit(180000)) { $install.Kill(); throw 'Toolchain setup timed out' }
+          if ($install.ExitCode -ne 0) { throw 'Toolchain setup failed' }
+      - name: Build, test and verify both architectures
+        shell: pwsh
+        run: |
+          ./windhawk/tools/produce-release.ps1 -WindhawkRoot 'C:\dac-toolchain'
+          ./windhawk/tools/prepare-assets.ps1
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-assets
+          path: build/release-assets/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-assets
+          path: assets
+      - name: Publish immutable release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          (cd assets && sha256sum --check SHA256SUMS.txt)
+          flags=()
+          if [[ "$RELEASE_TAG" == v0.* ]]; then flags+=(--prerelease --latest=false); fi
+          gh release create "$RELEASE_TAG" assets/* --verify-tag --title "Display Activity Controls $RELEASE_TAG" --generate-notes "${flags[@]}"

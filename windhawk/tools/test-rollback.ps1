@@ -1,6 +1,7 @@
-param([string]$Archive=(Join-Path $PSScriptRoot '../tests/fixtures/rc4-source.zip'),[string]$WindhawkRoot='C:\Program Files\Windhawk',[ValidateSet('nextbeta','nextbeta2','nextbeta3','nextbeta4','dac-beta5','dac-beta6','dac-0.1.6')][string]$OutputName='dac-0.1.6')
+param([string]$Archive=(Join-Path $PSScriptRoot '../tests/fixtures/rc4-source.zip'),[string]$WindhawkRoot='C:\Program Files\Windhawk',[ValidatePattern('^[a-zA-Z0-9][a-zA-Z0-9.-]*$')][string]$OutputName='')
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'evidence.ps1')
+if(!$OutputName){$OutputName=(Dac-ReleaseSpec (Dac-CurrentVersion)).output}
 # Deliberately separate historical input, not bundled into the new standalone mod.
 $accepted=@('bf24f21219674d519a57576f913c899a572ac0944af089245d858e90a6676378','7c1c4037f95ed326f220a8231d467016346b77fe73680544c0461c7281ae1ccc')
 $expected=if(Test-Path -LiteralPath $Archive){Dac-Hash $Archive}else{''}

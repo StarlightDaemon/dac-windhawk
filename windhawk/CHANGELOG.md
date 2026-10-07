@@ -4,6 +4,20 @@ This records the Windhawk edition. Earlier version labels were internal
 development labels; they are retained for evidence lookup. They do not establish
 a completed 1.0 release. No historical tag or published release is fabricated.
 
+## 0.2.0 — 2026-10-07 — release engineering and adversarial review
+
+- Create unpredictable, exclusive temporary files for settings, recovery markers,
+  and exports; preserve unrelated files at the old predictable temporary name.
+- Reject stale Advanced settings and profile drafts after settings change elsewhere.
+- Add checked version bumps, tag/version/changelog validation, and automatic
+  GitHub release assets after both architectures pass the full evidence pipeline.
+- Include top-level usage/license/security guidance and pinned fixtures in source
+  bundles; route the legacy package command through the full release gate.
+- Expand the README, add a security policy, and record review coverage and v1 gates.
+
+Configuration schema, mod ID, saved preferences and emergency shortcut are unchanged.
+This is a development prerelease; physical desktop/hardware qualification remains open.
+
 ## 0.1.6 — 2026-10-07 — local development candidate
 
 Renumbers the former `1.1.0-beta.6` candidate. The mod metadata and diagnostic

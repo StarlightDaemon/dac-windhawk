@@ -30,7 +30,7 @@ function Dac-ArchiveRejections($Payload,[string]$Directory,$Spec) {
         }
         $passed.Add($Label);Write-Host "PASS archive rejection: $Label"
     }
-    Reject-Archive 'unknown release version' {param($p,$v)$r=Dac-FixtureJson $p 'evidence/release.json';$r.version='9.9.9';$p['evidence/release.json']=Dac-JsonBytes $r} 'Unsupported release version'
+    Reject-Archive 'unknown release version' {param($p,$v)$r=Dac-FixtureJson $p 'evidence/release.json';$r.version='../9.9.9';$p['evidence/release.json']=Dac-JsonBytes $r} 'Unsupported release version'
     if($Spec.modId -ceq 'dac-windhawk') {
         Reject-Archive 'wrong mod identity' {param($p,$v)$r=Dac-FixtureJson $p 'evidence/x86/build.json';$r.identity.modId='oled-aegis';Dac-FixtureRebind $p 'x86' $r $Spec} 'Unexpected mod identity'
         Reject-Archive 'wrong binary name' {param($p,$v)$r=Dac-FixtureJson $p 'evidence/x86/build.json';($r.artifacts | Where-Object {$_.name -ceq $Spec.binary}).name='oled-aegis.dll';$p['evidence/x86/build.json']=Dac-JsonBytes $r} 'build artifacts'
@@ -47,7 +47,7 @@ function Dac-ArchiveRejections($Payload,[string]$Directory,$Spec) {
         Reject-Archive "missing $check receipt" {param($p,$v)$p.Remove("evidence/x86/$check.receipt.json")} "Required archive entry missing: evidence/x86/$check.receipt.json"
     }
     Reject-Archive 'shortened declared check list' {param($p,$v)$r=Dac-FixtureJson $p 'evidence/release.json';$r.requiredChecks=@($r.requiredChecks | Where-Object {$_ -cne 'nextbeta'});$p['evidence/release.json']=Dac-JsonBytes $r} 'required checks'
-    Reject-Archive 'missing required report' {param($p,$v)$p.Remove('windhawk/docs/NEXT_BETA_REPORT.md')} 'Required report missing'
+    Reject-Archive 'missing required report' {param($p,$v)$p.Remove($Spec.reports[0])} 'Required report missing'
     Reject-Archive 'duplicate archive path' $null 'Duplicate archive path' {param($z,$v)$e=$z.CreateEntry('SHA256SUMS.txt');$s=$e.Open();$s.Dispose()}
     Reject-Archive 'unsafe archive path' {param($p,$v)$names=@('../escape','/root','C:/bad','dir\file','dir//file','dir/./file','dir/file.');$p[$names[$v]]=[byte[]]@(1)} 'Unsafe archive/input path' $null 7
     Reject-Archive 'malformed checksum manifest' $null 'Malformed checksum row' {param($z,$v)$z.GetEntry('SHA256SUMS.txt').Delete();$e=$z.CreateEntry('SHA256SUMS.txt');$s=$e.Open();try{$b=[Text.Encoding]::UTF8.GetBytes('invalid checksum row');$s.Write($b,0,$b.Length)}finally{$s.Dispose()}}

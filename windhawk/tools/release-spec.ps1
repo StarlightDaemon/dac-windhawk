@@ -9,6 +9,12 @@ $DacNextCases=@($DacLegacyCases)+@(
     'missing required report','duplicate archive path','unsafe archive path','malformed checksum manifest','unlisted archive entry','wrong tooling case set',
     'missing rollback receipt','unsupported rollback schema','misbound rollback evidence','changed rollback log')
 $DacInputExtensions=@('.cpp','.ps1','.h','.hpp','.inl','.rc','.zip')
+function Dac-CurrentVersion {
+    $text=Get-Content -LiteralPath (Join-Path $PSScriptRoot '../mods/dac-windhawk.wh.cpp') -Raw
+    $match=[regex]::Matches($text,'(?m)^// @version[^\S\r\n]+([^\s]+)[^\S\r\n]*\r?$')
+    if($match.Count -ne 1){throw 'Exactly one source version is required'}
+    $match[0].Groups[1].Value
+}
 function Dac-ReleaseSpec([string]$Version) {
     $spec=[ordered]@{version=$Version;layout='legacy';modId='oled-aegis';binary='oled-aegis.dll';sourceName='oled-aegis.wh.cpp';checks=@($DacBaselineChecks);cases=@($DacLegacyCases);reports=@('windhawk/docs/BETA_1_REPORT.md','windhawk/docs/BETA_1_RELEASE_NOTES.md','windhawk/LICENSE-STATUS.md')}
     switch -CaseSensitive -Exact ($Version) {
@@ -67,14 +73,24 @@ function Dac-ReleaseSpec([string]$Version) {
             $spec.targets=[ordered]@{'x86'='i686-w64-mingw32';'x86-64'='x86_64-w64-mingw32'}
             $spec.reports=@('windhawk/LICENSE.md','windhawk/docs/FIXTURE_PROVENANCE.md','windhawk/CHANGELOG.md','windhawk/docs/REPOSITORY_RELEASE_PLAN.md','windhawk/docs/IDLE_DEFAULT_BETA6.md','windhawk/docs/DAC_IDENTITY.md','windhawk/docs/WINDHAWK_INTEGRATION.md','windhawk/docs/QUICK_SETUP_REFINEMENT.md','windhawk/docs/QUICK_SETUP_REVISION.md','windhawk/docs/QUICK_SETUP.md','windhawk/docs/NEXT_BETA_REPORT.md','windhawk/docs/NEXT_BETA_RELEASE_NOTES.md','windhawk/LICENSE-STATUS.md','windhawk/docs/PROVENANCE.md','windhawk/docs/THIRD_PARTY_NOTICES.md')
         }
-        default {throw "Unsupported release version: $Version"}
+        default {
+            if($Version -cnotmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'){throw "Unsupported release version: $Version"}
+            # A fixed evidence contract, independent of claims inside an archive.
+            $spec.output="dac-$Version";$spec.layout='dual-architecture-v1';$spec.specId="dac-$Version-v2"
+            $spec.modId='dac-windhawk';$spec.binary='dac-windhawk.dll';$spec.sourceName='dac-windhawk.wh.cpp'
+            $spec.checks=@($DacChecks);$spec.cases=@($DacNextCases)+@('wrong mod identity','wrong binary name')
+            $spec.outputs=[ordered]@{'x86'="dac-$Version";'x86-64'="dac-$Version-x64"}
+            $spec.targets=[ordered]@{'x86'='i686-w64-mingw32';'x86-64'='x86_64-w64-mingw32'}
+            $spec.reports=@('README.md','LICENSE','CONTRIBUTING.md','SECURITY.md','windhawk/CHANGELOG.md','windhawk/docs/RELEASING.md','windhawk/docs/ADVERSARIAL_REVIEW.md','windhawk/docs/FIXTURE_PROVENANCE.md','windhawk/docs/PROVENANCE.md','windhawk/docs/THIRD_PARTY_NOTICES.md')
+        }
     }
     $spec.source='windhawk/mods/'+$spec.sourceName
-    $prefix=if($Version -cin @('1.1.0-beta.5','1.1.0-beta.6','0.1.6')){'dac-windhawk'}elseif($Version -cin @('1.1.0-beta.1','1.1.0-beta.2','1.1.0-beta.3','1.1.0-beta.4')){'monitor-screensaver-activity-control'}elseif($Version -ceq '1.0.0-rc.4'){'liminal-oled-guard'}else{'oled-aegis'}
+    $prefix=if($spec.modId -ceq 'dac-windhawk'){'dac-windhawk'}elseif($Version -cin @('1.1.0-beta.1','1.1.0-beta.2','1.1.0-beta.3','1.1.0-beta.4')){'monitor-screensaver-activity-control'}elseif($Version -ceq '1.0.0-rc.4'){'liminal-oled-guard'}else{'oled-aegis'}
     $spec.archive="$prefix-$Version-source.zip"
     return [pscustomobject]$spec
 }
 function Dac-OutputSpec([string]$OutputName) {
+    if($OutputName -cmatch '^dac-((?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))(?:-x64)?$'){return Dac-ReleaseSpec $Matches[1]}
     $version=switch -CaseSensitive -Exact ($OutputName) {
         'beta1' {'1.0.0-beta.1'} 'beta2' {'1.0.0-beta.2'} 'beta2-x64' {'1.0.0-beta.2'}
         'rc1' {'1.0.0-rc.1'} 'rc1-x64' {'1.0.0-rc.1'} 'rc2' {'1.0.0-rc.2'} 'rc2-x64' {'1.0.0-rc.2'}

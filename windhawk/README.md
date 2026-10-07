@@ -3,11 +3,11 @@
 Activity-aware display protection, per-monitor screensavers and native scenes.
 The product ID is `dac-windhawk`; configuration lives in `%LOCALAPPDATA%\DAC-Windhawk`.
 
-**0.1.6** is the current pre-1.0 development candidate. It renumbers the former
-internal **1.1.0-beta.6** build and makes per-display input the fresh default. The fresh-configuration
-idle default is **60 seconds**. Version **1.0.0** is reserved for the candidate
+See [releases](https://github.com/StarlightDaemon/dac-windhawk/releases) and the
+[changelog](CHANGELOG.md) for the current pre-1.0 development candidate.
+The fresh-configuration idle default is **60 seconds**. Version **1.0.0** is reserved for the candidate
 submitted to Windhawk moderators, not a claim of acceptance.
-See the [changelog](CHANGELOG.md) and [repository/release plan](docs/REPOSITORY_RELEASE_PLAN.md).
+See the [release guide](docs/RELEASING.md) and [adversarial review](docs/ADVERSARIAL_REVIEW.md).
 **Independent display input** is on for fresh configurations. Mouse activity
 wakes its display; keyboard activity credits the pointer and focused displays.
 Existing configurations: enable **Independent display input** in Quick setup and

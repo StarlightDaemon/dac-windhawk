@@ -2,7 +2,7 @@
 // @id              dac-windhawk
 // @name            Display Activity Controls for Windhawk
 // @description     Protect idle monitors independently with per-display timers, screensavers, black screens, and photo slideshows. Includes input and media activity detection, quick setup, and system tray controls.
-// @version         0.1.6
+// @version         0.2.0
 // @author          Display Activity Controls for Windhawk contributors
 // @include         windhawk.exe
 // @architecture    x86
@@ -172,6 +172,7 @@ the Quick setup review, fresh-install instructions, `PROVENANCE.md` and
 #endif
 
 namespace dac {
+constexpr char kVersion[]="0.2.0"; // Kept in sync with @version by tools/version.ps1.
 using Time = uint64_t;
 struct Preference {
     bool enabled=true; int saver=-1; // -1: native black
@@ -644,9 +645,13 @@ bool ReadFileText(const std::wstring& path,std::string& text,DWORD& error,bool r
 // rename leaves the old file intact; stale private temp files are removed.
 bool WriteFileText(const std::wstring& path,const std::string& text,DWORD& error) {
     auto p=Extended(path); if(p.empty()) { error=ERROR_BAD_PATHNAME; return false; }
-    auto temp=p+L".tmp-"+std::to_wstring(GetCurrentProcessId());
+    GUID nonce{};HRESULT created=CoCreateGuid(&nonce);
+    if(FAILED(created)){error=ERROR_GEN_FAILURE;return false;}
+    auto temp=p+L".tmp-"+Wide(Hex(std::string(reinterpret_cast<const char*>(&nonce),sizeof(nonce))));
     bool ok=false;
-    { Handle f(CreateFileW(temp.c_str(),GENERIC_WRITE,0,nullptr,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,nullptr));
+    { Handle f(CreateFileW(temp.c_str(),GENERIC_WRITE,0,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr));
+      // Never follow/truncate a pre-existing temporary file or remove one we do not own.
+      if(!f){error=GetLastError();return false;}
       DWORD wrote=0;
       ok=f && WriteFile(f,text.data(),static_cast<DWORD>(text.size()),&wrote,nullptr)&&wrote==text.size()&&FlushFileBuffers(f);
       if(!ok) error=GetLastError(); }
@@ -1525,7 +1530,8 @@ bool LegacyStartupPresent() {
     LSTATUS result=RegQueryValueExW(key,L"OLED Aegis",nullptr,nullptr,nullptr,nullptr); RegCloseKey(key); return result==ERROR_SUCCESS;
 }
 // UI controls edit a draft. Only Save invokes the canonical checked transaction.
-Config draft; int selection=-1;std::vector<Display> editorDisplays;
+Config draft;std::string editorBaseline; int selection=-1;std::vector<Display> editorDisplays;
+bool EditorCurrent(){return Serialize(controller.config)==editorBaseline||SaveFailed(L"Saved settings changed elsewhere. Close and reopen Advanced settings before saving; your draft has not been applied.");}
 const wchar_t* StateLabel(State state) {
     switch(state){case State::Dim:return L"software dim";case State::Disabled:return L"disabled";case State::Suppressed:return L"kept awake";case State::Black:return L"black";
     case State::Launching:return L"starting saver";case State::Saver:return L"saver running";case State::Fallback:return L"black fallback";default:return L"desktop";}
@@ -1569,7 +1575,7 @@ void LoadMonitorDraft() {
     EnableWindow(GetDlgItem(editor,144),d.identified);UpdateEditorStatus();
 }
 void PopulateEditor(bool fromLive=true) {
-    if(fromLive)draft=controller.config;editorDisplays=displays;
+    if(fromLive){draft=controller.config;editorBaseline=Serialize(controller.config);}editorDisplays=displays;
     SetDlgItemInt(editor,101,draft.timeout,FALSE); SetDlgItemInt(editor,102,draft.poll,FALSE); SetDlgItemInt(editor,103,draft.padding,FALSE);
     bool flags[]={draft.automatic,draft.perInput,draft.media,draft.perMedia,draft.muted,draft.debug};
     for(int i=0;i<6;++i) CheckDlgButton(editor,110+i,flags[i]?BST_CHECKED:BST_UNCHECKED);
@@ -1722,7 +1728,7 @@ std::wstring ConflictText(){BOOL enabled=FALSE;UINT timeout=0;SetLastError(0);bo
     result+=L"\nKnown controller names observed: "+(processQuery?std::to_wstring(count):L"query unavailable")+L" (advisory, not exhaustive).\nNo OS setting or process has been changed. Windows policy may be managed.\nUse Windows Settings > Personalization > Lock screen > Screen saver for details.";return result;}
 std::string SafeDiagnosticEvent(const std::string& event){for(unsigned i=0;i<=static_cast<unsigned>(Reason::HardwareFault);++i)if(event==ReasonText(static_cast<Reason>(i)))return event;for(auto allowed:{"saver fallback","owned process started","owned process exit wait expired","too many stopping sessions","dim alpha unavailable","worker creation failed","configuration failed","settings persistence failed","settings save rejected","hardware off accepted","hardware unavailable","hardware wake failed","hardware wake accepted"})if(event==allowed)return event;return "event redacted";}
 std::string SafeDiagnosticAlias(const std::string& alias){int number=0;if(alias.starts_with("Display ")&&Number(alias.substr(8),number)&&number>0&&number<=64)return alias;return "host";}
-std::string DiagnosticText(){std::ostringstream out;out<<"Display Activity Controls for Windhawk 0.1.6\nRedacted local diagnostics; no paths, identities, titles or recovery secrets.\n";
+std::string DiagnosticText(){std::ostringstream out;out<<"Display Activity Controls for Windhawk "<<kVersion<<"\nRedacted local diagnostics; no paths, identities, titles or recovery secrets.\n";
     auto& policy=controller.PolicyNow();out<<"automatic="<<policy.automatic<<" timeout="<<policy.timeout<<" poll="<<policy.poll<<" controllerInput="<<policy.controllerInput<<" profileActive="<<!controller.activeProfile.empty()<<"\n";
     for(size_t i=0;i<displays.size();++i){auto& d=displays[i];auto p=controller.Pref(d.id);out<<"Display "<<i+1<<": enabled="<<p.enabled<<" saver="<<p.saver<<" dimOpacity="<<p.dim<<" inputMode="<<p.input<<" hardwareOptIn="<<p.hardware<<" faultRetained="<<PowerPending(d.id)<<"\n";}
     AdapterSnapshot sample;{std::lock_guard lock(observationLock);sample=adapters;}out<<"powerSource="<<static_cast<int>(sample.power)<<" xinputAvailable="<<sample.controllerAvailable<<" controllerConnected="<<sample.connected<<"\n";
@@ -1741,7 +1747,7 @@ LRESULT CALLBACK WorkspaceProc(HWND w,UINT msg,WPARAM wp,LPARAM lp){LRESULT resu
     if(msg==WM_COMMAND){int id=LOWORD(wp);if(id==300&&HIWORD(wp)==CBN_SELCHANGE)WorkspaceSelection();
         else if(id==310){auto name=Utf8(ControlText(w,301));int start=0,end=0,trigger=static_cast<int>(SendDlgItemMessageW(w,302,CB_GETCURSEL,0,0));if(name.empty()||name.size()>128||!ClockMinute(Utf8(ControlText(w,303)),start)||!ClockMinute(Utf8(ControlText(w,304)),end)||!ApplyWorkspaceRules()){Notice(L"Use a name, valid HH:MM times and valid application rules.");return 0;}
             Profile profile{name,Utf8(ControlText(w,305)),trigger,start,end,IsDlgButtonChecked(w,306)==BST_CHECKED,static_cast<Policy>(draft)};auto found=std::find_if(draft.profiles.begin(),draft.profiles.end(),[&](auto& p){return p.name==name;});if(found==draft.profiles.end()){if(draft.profiles.size()>=8){Notice(L"Eight profiles maximum.");return 0;}draft.profiles.push_back(profile);}else *found=profile;RefreshWorkspaceList();SetDlgItemTextW(w,330,L"Profile captured in unsaved settings draft. Save the main settings to keep it.");}
-        else if(id==311||id==312){int index=static_cast<int>(SendDlgItemMessageW(w,300,CB_GETCURSEL,0,0));if(id==311&&(index<0||index>=static_cast<int>(draft.profiles.size())))return 0;draft.manualProfile=id==311?draft.profiles[index].name:"";if(Save(draft,false))SetDlgItemTextW(w,330,L"Profile selection saved. Automatic selection uses app, then schedule, then base; first match wins.");}
+        else if(id==311||id==312){if(!EditorCurrent())return 0;int index=static_cast<int>(SendDlgItemMessageW(w,300,CB_GETCURSEL,0,0));if(id==311&&(index<0||index>=static_cast<int>(draft.profiles.size())))return 0;draft.manualProfile=id==311?draft.profiles[index].name:"";if(Save(draft,false)){editorBaseline=Serialize(controller.config);SetDlgItemTextW(w,330,L"Profile selection saved. Automatic selection uses app, then schedule, then base; first match wins.");}}
         else if(id==313){int index=static_cast<int>(SendDlgItemMessageW(w,300,CB_GETCURSEL,0,0));if(index>=0&&index<static_cast<int>(draft.profiles.size())){if(draft.manualProfile==draft.profiles[index].name)draft.manualProfile.clear();draft.profiles.erase(draft.profiles.begin()+index);RefreshWorkspaceList();}}
         else if(id==314){int index=static_cast<int>(SendDlgItemMessageW(w,300,CB_GETCURSEL,0,0));if(index<0||index>=static_cast<int>(draft.profiles.size()))return 0;auto path=SelectLocalFile(w,true,L"Export selected profile (hardware grants and automatic activation removed)");DWORD error=0;if(!path.empty()&&!WriteFileText(path,Serialize(Portable(draft.profiles[index].policy)),error))Notice(L"Profile export failed.");}
         else if(id==318){int index=static_cast<int>(SendDlgItemMessageW(w,300,CB_GETCURSEL,0,0));if(index>=0&&index<static_cast<int>(draft.profiles.size())){auto retained=draft.monitors;static_cast<Policy&>(draft)=draft.profiles[index].policy;for(auto& [key,p]:retained)draft.monitors.try_emplace(key,p);DestroyWindow(w);PopulateEditor(false);SetWindowTextW(editor,L"Profile loaded into unsaved draft — review, then capture to replace profile");}return 0;}
@@ -1955,6 +1961,7 @@ LRESULT CALLBACK EditorProc(HWND w,UINT msg,WPARAM wp,LPARAM lp) {
             StoreMonitorDraft(); LoadMonitorDraft();
         }
         else if(id==130) {
+            if(!EditorCurrent()){SetWindowTextW(w,L"SETTINGS CHANGED — Reopen before saving | Display Activity Controls for Windhawk");return 0;}
             if(!ValidMonitorNumbers()){MessageBoxW(w,L"Monitor times must be nonnegative integers.",L"Invalid settings",MB_OK);return 0;}
             StoreMonitorDraft(); BOOL ok1,ok2,ok3;
             draft.timeout=GetDlgItemInt(w,101,&ok1,FALSE); draft.poll=GetDlgItemInt(w,102,&ok2,FALSE); draft.padding=GetDlgItemInt(w,103,&ok3,FALSE);

@@ -4,6 +4,12 @@ Use `main` as the mainline branch. Keep changes focused and include relevant
 validation and release notes. This development series uses 0.x versions;
 1.0.0 is the moderator-submission milestone.
 
+For version bumps, annotated tags and automated GitHub packages, follow
+[Releasing](windhawk/docs/RELEASING.md). Use focused commits (`fix:`, `feat:`,
+`docs:`, `test:`, `build:` or `ci:` prefixes are useful); update the changelog for
+each released batch. Product/schema versions are independent. Report vulnerabilities
+according to [SECURITY.md](SECURITY.md).
+
 ## Build and validate
 
 Prerequisites: Windows, PowerShell 7, Git and Windhawk **1.7.3** with its bundled

@@ -1,6 +1,10 @@
 # Shared archive reader/writer. Import is read-only; callers choose explicit paths.
 function Dac-ArchivePayload($Spec,$Pair,[string]$Out) {
     $payload=[ordered]@{}
+    foreach($name in @('README.md','LICENSE','CONTRIBUTING.md','SECURITY.md','docs/assets/dac-banner.svg','.github/workflows/release.yml')) {
+        $path=Join-Path $DacRepo $name
+        if(Test-Path -LiteralPath $path){$payload[$name]=[IO.File]::ReadAllBytes($path)}
+    }
     Get-ChildItem -LiteralPath (Join-Path $DacRepo 'windhawk') -File -Recurse |
         Where-Object {$_.Extension -in (@($DacInputExtensions)+@('.md'))} | Sort-Object FullName | ForEach-Object {
             $name=$_.FullName.Substring($DacRepo.Length+1).Replace('\','/');$payload[$name]=[IO.File]::ReadAllBytes($_.FullName)

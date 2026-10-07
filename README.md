@@ -1,50 +1,123 @@
-# Display Activity Controls for Windhawk
+<p align="center">
+  <img src="docs/assets/dac-banner.svg" alt="Display Activity Controls — Your displays. Their own timing." width="900">
+</p>
 
-**Development version 0.1.6** — activity-aware display protection and per-monitor
-screensavers, running as a Windhawk tool mod.
+<p align="center">
+  <a href="https://github.com/StarlightDaemon/dac-windhawk/actions/workflows/release.yml"><img src="https://github.com/StarlightDaemon/dac-windhawk/actions/workflows/release.yml/badge.svg" alt="Build and release checks"></a>
+  <a href="https://github.com/StarlightDaemon/dac-windhawk/releases"><img src="https://img.shields.io/github/v/release/StarlightDaemon/dac-windhawk?include_prereleases&amp;color=7950f2" alt="Latest release including prereleases"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-7950f2" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/platform-Windows-343a40" alt="Windows">
+</p>
 
-Choose native black, installed screensavers, photos or built-in scenes for each
-monitor. Quick setup provides independent Save and Close actions; Advanced
-settings adds activity rules, profiles and optional hardware controls. New
-configurations use a **60-second idle timeout** and **independent display input**.
-Automatic activation is opt-in. Mouse activity wakes its display; keyboard activity
-also credits the focused display.
+<p align="center">
+  <a href="#install-and-get-started">Get started</a> ·
+  <a href="windhawk/README.md">User guide</a> ·
+  <a href="https://github.com/StarlightDaemon/dac-windhawk/releases">Downloads</a> ·
+  <a href="windhawk/CHANGELOG.md">What's changed</a> ·
+  <a href="CONTRIBUTING.md">Build & contribute</a>
+</p>
 
-## Install
+**Display Activity Controls (DAC)** is a Windhawk tool mod that gives each monitor
+its own idle timer, presentation and activity rules. Keep a working display awake
+while another shows black, a moving scene, photos or an installed screensaver.
 
-1. Install Windhawk, then create or open a local mod in its editor.
-2. Replace the complete template with
-   [dac-windhawk.wh.cpp](windhawk/mods/dac-windhawk.wh.cpp).
-3. Compile and enable it. Confirm version **0.1.6**, configure displays in Quick
-   setup, enable Automatic if desired, and **Save setup**.
-4. For an existing test configuration, enable **Independent display input** in
-   Quick setup and save. Each monitor's Advanced **Input scope** should use the
-   global setting unless you deliberately want an override.
+> **Development release:** DAC is in the `0.x` series. Automatic activation is
+> opt-in. New configurations use a **60-second idle timer** and **independent display
+> input**. [Review status and remaining v1 work](windhawk/docs/ADVERSARIAL_REVIEW.md).
 
-Existing test configurations retain their saved timers and presentation choices.
-The intentional change from internal 1.x labels to 0.1.6 requires explicitly
-compiling the source; it is not an automatic upgrade. The technical ID is
-`dac-windhawk`, and settings live in `%LOCALAPPDATA%\DAC-Windhawk`.
+## What you can do
 
-**Emergency stop: Ctrl+Alt+Shift+F12.** Default native black covers a display;
-it does not lock Windows or imply that the monitor is physically powered off.
+| Area | Controls |
+| --- | --- |
+| Each display | Enable protection, set a timer, choose a presentation and override input/media behavior |
+| Presentations | Native black, dim warning, moving clock, sparse constellation, photo slideshow, installed or custom `.scr` |
+| Activity | Pointer and keyboard attribution, media inhibition, fullscreen/app rules, optional XInput |
+| Automation | Manual or scheduled profiles, app-triggered selection, pause and snooze |
+| Everyday use | Quick setup, display identification, tray start/stop, sticky shortcuts, contained preview |
+| Appearance | Native settings using the Fujin palette; system/light/dark choices with high-contrast priority |
+| Optional power | Experimental per-display DDC/CI off/wake, explicit opt-in and failure quarantine |
 
-## Documentation
+Mouse activity wakes its display; keyboard activity also credits the focused
+display. Unattributed input wakes displays conservatively. Application/media
+attribution is heuristic; advanced overrides and profiles can change the policy.
 
-- [Controls, settings and usage](windhawk/README.md)
-- [Changelog and historical milestones](windhawk/CHANGELOG.md)
-- [Version policy, build validation and remaining qualification](windhawk/docs/REPOSITORY_RELEASE_PLAN.md)
-- [Provenance](windhawk/docs/PROVENANCE.md) and [third-party notices](windhawk/docs/THIRD_PARTY_NOTICES.md)
-- [Building and contributing](CONTRIBUTING.md)
+## Install and get started
 
-This is a pre-1.0 development project. Version 1.0.0 is reserved for the reviewed
-candidate submitted to Windhawk moderators. Public source availability does not
-mean moderator acceptance or complete physical-monitor qualification.
+**Requirements:** Windows with [Windhawk](https://windhawk.net/) installed. The
+build/host integration is qualified against **Windhawk 1.7.3**; other versions and
+ARM64 are unqualified. Maintainer tools are unnecessary for installation.
 
-## License
+1. Open [Releases](https://github.com/StarlightDaemon/dac-windhawk/releases) and
+   download **`dac-windhawk.wh.cpp`** from the release you want to test.
+2. In Windhawk, create a local mod. Replace the complete editor template with the
+   downloaded source, compile it, then enable it.
+3. Open **Settings & setup → Quick setup** from the monitor/shield tray icon.
+   Choose a display, protection style and idle time; select **Save setup**.
+4. Repeat for other displays. Enable **Automatic** when ready and save again.
+   **Close** is separate, so you can save repeatedly without leaving setup.
 
-[MIT](LICENSE), copyright 2026 StarlightDaemon. The self-contained mod embeds its
-license notice. Dependency terms and the MIT-licensed Fujin tokens retain their
-own notices. This repository contains the Windhawk edition, not the inherited
-OLED Aegis standalone application or artwork; its development relationship is
-recorded in the provenance document.
+Advanced settings adds screensaver/photo paths, profiles and detailed rules.
+Existing configurations retain their saved values. Enable **Independent display
+input** in Quick setup if an older configuration has it off; check Advanced
+input scopes for intentional per-display overrides.
+
+<details>
+<summary><strong>Updating, settings location and source packages</strong></summary>
+
+Replace the complete local mod source with the new release's `.wh.cpp`, compile,
+and confirm the version in Windhawk. Read the changelog before updating. The
+technical ID is `dac-windhawk`; settings live in `%LOCALAPPDATA%\DAC-Windhawk`.
+Keep a backup of that folder before testing upgrades. Disable older renamed
+test mods and the standalone OLED Aegis controller before enabling DAC.
+
+The `-source.zip` release asset includes source, docs, tests, pinned fixtures and
+validation evidence. `SHA256SUMS.txt` beside the assets checks the downloads; the
+ZIP has its own manifest for its contents. GitHub's standard source archives are
+snapshots of the tagged repository and omit generated validation evidence.
+
+</details>
+
+## Start, stop and recover
+
+| Action | Where |
+| --- | --- |
+| Start or stop enabled displays | Left-click the tray icon (default action) |
+| Stop one display | **Displays → Stop / wake this monitor** |
+| Pause or snooze automatic protection | **Automation** in the tray menu |
+| Inspect activity reasons or export diagnostics | **Diagnostics** and Advanced settings |
+| Emergency exit | **Ctrl+Alt+Shift+F12** |
+| Exit until re-enabled | Tray menu; disable/re-enable the mod to restart |
+
+**Native black and screensavers do not lock Windows or guarantee burn-in
+prevention.** A custom `.scr` is a program: choose trusted files. Hardware power
+control is experimental and monitor-dependent; wake failure can require the
+physical power button. See [security and trust boundaries](SECURITY.md).
+
+## Find your next step
+
+| I want to… | Read |
+| --- | --- |
+| Configure everyday behavior | [Controls and usage](windhawk/README.md) |
+| See changes and release numbering | [Changelog](windhawk/CHANGELOG.md) · [Release guide](windhawk/docs/RELEASING.md) |
+| Build or contribute | [Contributor guide](CONTRIBUTING.md) |
+| Assess readiness and known limits | [Adversarial review](windhawk/docs/ADVERSARIAL_REVIEW.md) · [Compatibility](windhawk/docs/COMPATIBILITY.md) |
+| Understand source/dependency history | [Provenance](windhawk/docs/PROVENANCE.md) · [Notices](windhawk/docs/THIRD_PARTY_NOTICES.md) |
+| Report a problem | [Issues](https://github.com/StarlightDaemon/dac-windhawk/issues) · [Security reporting](SECURITY.md) |
+
+Include the DAC/Windows/Windhawk versions, expected behavior, and reproducible
+steps in bug reports. Review diagnostic attachments before sharing them.
+
+## Development and license
+
+DAC ships as a self-contained C++ source mod. Maintainers use PowerShell 7 and
+the pinned Windhawk toolchain. Validation builds x86 and x86-64 and exercises
+policy, storage, process containment, lifecycle, native UI and packaging failures.
+Physical multi-monitor and hardware qualification is tracked separately.
+
+Version **1.0.0** is reserved for the reviewed moderator-submission candidate;
+public availability does not imply moderator acceptance. See the
+[release guide](windhawk/docs/RELEASING.md) for the exact gates.
+
+[MIT](LICENSE), copyright 2026 StarlightDaemon. Dependency terms remain in their
+notices. This repository contains the Windhawk edition; it does not ship the older
+OLED Aegis standalone application or artwork.

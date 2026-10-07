@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
+  <title id="title">Display Activity Controls</title>
+  <desc id="desc">Three violet monitors. Your displays. Their own timing.</desc>
+  <rect width="1200" height="300" rx="20" fill="#1f1f1f"/>
+  <path d="M4 0v300" stroke="#7950f2" stroke-width="8"/>
+  <g stroke="#7950f2" stroke-width="4" fill="#242424">
+    <rect x="65" y="106" width="115" height="82" rx="5"/>
+    <rect x="195" y="80" width="145" height="108" rx="5"/>
+    <rect x="355" y="106" width="115" height="82" rx="5"/>
+    <path d="M122 189v19m-28 0h56m117-19v27m-36 0h72m110-27v19m-28 0h56" fill="none"/>
+  </g>
+  <g fill="#b197fc"><circle cx="119" cy="147" r="5"/><circle cx="407" cy="141" r="3"/><circle cx="432" cy="162" r="2"/></g>
+  <path d="m267 105 27 11-3 29-24 18-24-18-3-29Z" fill="#7950f2"/>
+  <path d="m253 133 10 10 20-23" fill="none" stroke="#fff" stroke-width="4"/>
+  <g font-family="Segoe UI,Arial,sans-serif">
+    <text x="525" y="96" fill="#b197fc" font-size="17" letter-spacing="3">DAC / WINDHAWK</text>
+    <text x="525" y="146" fill="#f8f9fa" font-size="38" font-weight="600">Display Activity Controls</text>
+    <text x="525" y="190" fill="#c9c9c9" font-size="23">Your displays. Their own timing.</text>
+    <text x="525" y="228" fill="#b8b8b8" font-size="17">Per-display idle · Screensavers · Activity rules</text>
+  </g>
+</svg>

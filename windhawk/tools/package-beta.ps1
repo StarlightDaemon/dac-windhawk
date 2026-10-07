@@ -1,6 +1,7 @@
-param([ValidateSet('beta1','beta2','rc1','rc2','rc3','rc4','nextbeta','nextbeta2','nextbeta3','nextbeta4','dac-beta5','dac-beta6','dac-0.1.6')][string]$OutputName='dac-0.1.6')
+param([ValidatePattern('^[a-zA-Z0-9][a-zA-Z0-9.-]*$')][string]$OutputName='')
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'evidence.ps1')
+if(!$OutputName){$OutputName=(Dac-ReleaseSpec (Dac-CurrentVersion)).output}
 . (Join-Path $PSScriptRoot 'archive-evidence.ps1')
 $spec=Dac-OutputSpec $OutputName;$out=Join-Path $DacRepo "build/windhawk/$OutputName"
 $pair=$null;$build=$null
