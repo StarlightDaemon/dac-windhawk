@@ -159,8 +159,8 @@ From the repository root in PowerShell:
 ```
 
 This inventories the host, reads the source version, builds into
-`build/windhawk/dac-VERSION` and `dac-VERSION-x64`, runs sixteen groups on each architecture, checks RC4 rollback
-and 34 evidence-rejection cases, and creates a verified source ZIP.
+`build/windhawk/dac-VERSION` and `dac-VERSION-x64`, runs seventeen groups on each architecture, checks RC4 rollback
+and 37 evidence-rejection cases, and creates a verified source ZIP.
 It does not install, publish, change startup or operate physical power.
 Harness events/singletons are isolated; tray and hotkey registration are
 simulated so tests do not commandeer the installed mod's controls.

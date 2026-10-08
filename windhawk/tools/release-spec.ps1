@@ -1,6 +1,7 @@
 # Trusted requirements: archived manifests describe evidence, never choose it.
 $DacBaselineChecks=@('policy','storage','catalog','media','faults','containment','host-death','emergency','lifecycle','probes','sessions','session-soak','advanced','power','slides')
 $DacChecks=@($DacBaselineChecks)+@('nextbeta')
+$DacCurrentChecks=@($DacChecks)+@('nativewake')
 $DacLegacyCases=@('failed receipt','stale build receipt','missing receipt','edited log','changed binary','alternate-source eligibility','changed test/tool input','actual timed-out rerun invalidates previous pass')
 $DacNextCases=@($DacLegacyCases)+@(
     'unknown release version','unsupported build schema','unsupported test receipt schema','unsupported tooling receipt schema',
@@ -82,6 +83,11 @@ function Dac-ReleaseSpec([string]$Version) {
             $spec.outputs=[ordered]@{'x86'="dac-$Version";'x86-64'="dac-$Version-x64"}
             $spec.targets=[ordered]@{'x86'='i686-w64-mingw32';'x86-64'='x86_64-w64-mingw32'}
             $spec.reports=@('README.md','LICENSE','CONTRIBUTING.md','SECURITY.md','windhawk/CHANGELOG.md','windhawk/docs/RELEASING.md','windhawk/docs/ADVERSARIAL_REVIEW.md','windhawk/docs/FIXTURE_PROVENANCE.md','windhawk/docs/PROVENANCE.md','windhawk/docs/THIRD_PARTY_NOTICES.md')
+            if([version]$Version -ge [version]'0.3.0'){
+                $spec.specId="dac-$Version-v3";$spec.checks=@($DacCurrentChecks)
+                $spec.cases+=@('missing nativewake receipt','omitted nativewake declaration','missing native wake report')
+                $spec.reports+=@('windhawk/docs/NATIVE_WAKE.md')
+            }
         }
     }
     $spec.source='windhawk/mods/'+$spec.sourceName
@@ -120,6 +126,6 @@ function Dac-AssertNames($Actual,$Expected,[string]$Label) {
     foreach($name in @($Expected)){if(!$set.Contains($name)){throw "Missing $Label`: $name"}}
 }
 function Dac-CheckBinary([string]$Check) {
-    if($Check -cnotin $DacChecks){throw "Unknown check: $Check"}
+    if($Check -cnotin $DacCurrentChecks){throw "Unknown check: $Check"}
     if($Check -ceq 'policy'){'policy-tests.exe'}else{'platform-tests.exe'}
 }

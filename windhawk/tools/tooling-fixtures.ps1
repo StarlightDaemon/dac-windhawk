@@ -46,6 +46,11 @@ function Dac-ArchiveRejections($Payload,[string]$Directory,$Spec) {
     foreach($check in @('advanced','power','slides','nextbeta')) {
         Reject-Archive "missing $check receipt" {param($p,$v)$p.Remove("evidence/x86/$check.receipt.json")} "Required archive entry missing: evidence/x86/$check.receipt.json"
     }
+    if('nativewake' -cin $Spec.checks){
+        Reject-Archive 'missing nativewake receipt' {param($p,$v)$arch=if($v -eq 0){'x86'}else{'x86-64'};$p.Remove("evidence/$arch/nativewake.receipt.json")} 'Required archive entry missing: evidence/(x86|x86-64)/nativewake.receipt.json' $null 2
+        Reject-Archive 'omitted nativewake declaration' {param($p,$v)$r=Dac-FixtureJson $p 'evidence/release.json';$r.requiredChecks=@($r.requiredChecks | Where-Object {$_ -cne 'nativewake'});$p['evidence/release.json']=Dac-JsonBytes $r} 'required checks'
+        Reject-Archive 'missing native wake report' {param($p,$v)$p.Remove('windhawk/docs/NATIVE_WAKE.md')} 'Required report missing'
+    }
     Reject-Archive 'shortened declared check list' {param($p,$v)$r=Dac-FixtureJson $p 'evidence/release.json';$r.requiredChecks=@($r.requiredChecks | Where-Object {$_ -cne 'nextbeta'});$p['evidence/release.json']=Dac-JsonBytes $r} 'required checks'
     Reject-Archive 'missing required report' {param($p,$v)$p.Remove($Spec.reports[0])} 'Required report missing'
     Reject-Archive 'duplicate archive path' $null 'Duplicate archive path' {param($z,$v)$e=$z.CreateEntry('SHA256SUMS.txt');$s=$e.Open();$s.Dispose()}

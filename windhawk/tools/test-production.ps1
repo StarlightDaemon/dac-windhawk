@@ -5,7 +5,7 @@ $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $out=Join-Path $repo "build/windhawk/$OutputName"
 $build=Dac-Build $out
 foreach($check in $Checks) {
-    if($check -notin $DacChecks) { throw "Unknown check $check" }
+    if($check -notin $DacCurrentChecks) { throw "Unknown check $check" }
     foreach($extension in @('result','receipt.json')) { $path=Join-Path $out "$check.$extension";if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path} }
     $watch=[Diagnostics.Stopwatch]::StartNew()
     function Save-Receipt {

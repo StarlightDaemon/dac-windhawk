@@ -21,8 +21,8 @@ and explicitly establish any compatibility/support commitments.
 | Change | Version / record |
 | --- | --- |
 | Each coherent change | Focused Git commit with a descriptive message |
-| Fixes or small refinements ready to distribute | Next PATCH, e.g. 0.2.0 → 0.2.1 |
-| A feature or substantial batch | Next MINOR, e.g. 0.2.1 → 0.3.0 |
+| Each substantive modification batch, including runtime fixes and refinements | Next MINOR, reset PATCH; e.g. 0.2.1 → 0.3.0, then 0.4.0 |
+| Documentation-only changes without a new distribution | Commit; no release version required |
 | Reviewed moderator-submission candidate | 1.0.0; moderator acceptance is separate |
 | Incompatible public behavior or configuration after 1.0 | Next MAJOR, with replacement/reset instructions as needed |
 
@@ -36,11 +36,11 @@ published tags or replace released assets. Fix a bad release with a new version.
 From the repository root in PowerShell 7:
 
 ```powershell
-./windhawk/tools/version.ps1 -Set 0.2.1 # choose the next appropriate version
+./windhawk/tools/version.ps1 -Set 0.3.0 # expected next MINOR after 0.2.1; use an unused version
 # Add a matching section to windhawk/CHANGELOG.md.
 ./windhawk/tools/version.ps1
 ./windhawk/tools/produce-release.ps1
-./windhawk/tools/prepare-assets.ps1 -Destination build/release-assets-0.2.1
+./windhawk/tools/prepare-assets.ps1 -Destination build/release-assets-0.3.0
 ```
 
 The full pipeline compiles the standalone mod and tests for x86 and x86-64,
@@ -53,8 +53,8 @@ Review and commit the complete batch using the operator's Git identity. Require
 a clean worktree before pushing or tagging. Never include credentials, live settings,
 generated binaries or private governance files. Push `main` and wait for
 **Validate and release** to pass. Then create and push an annotated tag on that
-exact commit, for example `git tag -a v0.2.1 -m "Release 0.2.1"` followed by
-`git push origin v0.2.1`. The version checker rejects a mismatched tag.
+exact commit, for example `git tag -a v0.3.0 -m "Release 0.3.0"` followed by
+`git push origin v0.3.0`. The version checker rejects a mismatched tag.
 
 ## What GitHub does
 

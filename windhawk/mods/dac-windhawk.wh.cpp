@@ -2,7 +2,7 @@
 // @id              dac-windhawk
 // @name            Display Activity Controls for Windhawk
 // @description     Protect idle monitors independently with per-display timers, screensavers, black screens, and photo slideshows. Includes input and media activity detection, quick setup, and system tray controls.
-// @version         0.2.1
+// @version         0.3.0
 // @author          Display Activity Controls for Windhawk contributors
 // @include         windhawk.exe
 // @architecture    x86
@@ -168,12 +168,14 @@ the Quick setup review, fresh-install instructions, `PROVENANCE.md` and
 #include <cmath>
 #include <array>
 #include <deque>
+#include <condition_variable>
+#include <chrono>
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
 namespace dac {
-constexpr char kVersion[]="0.2.1"; // Kept in sync with @version by tools/version.ps1.
+constexpr char kVersion[]="0.3.0"; // Kept in sync with @version by tools/version.ps1.
 using Time = uint64_t;
 struct Preference {
     bool enabled=true; int saver=-1; // -1: native black
@@ -433,14 +435,14 @@ bool ControllerActive(unsigned buttons,int lx,int ly,int rx,int ry,unsigned lt,u
 }
 unsigned DimAlpha(int percent,int fade,Time elapsed){return static_cast<unsigned>(std::clamp(percent,0,100)*255/100*(fade?std::min<Time>(elapsed,fade):1)/(fade?fade:1));}
 struct Controller {
-    Config config; std::map<std::string,Node> nodes; Time serial=0; bool paused=false,blocked=false;
+    Config config; std::map<std::string,Node> nodes; Time serial=0,inputBoundary=0; bool paused=false,blocked=false;
     Preference spanPreference;std::set<std::string> fullscreen,hardwareFaults,unidentified;bool legacyAutomationBlocked=false;
     Foreground foreground;PowerSource powerSource=PowerSource::Unknown;Time snoozeUntil=0;bool activityStale=false;
     std::string activeProfile,candidateProfile,effectiveIdentity,selectedManualProfile;Time candidateSince=0;
     Policy effective;bool effectiveReady=false;
     std::map<std::string,Explanation> explanations;std::map<std::string,Preference> manualPreferences;
     const Policy& PolicyNow()const{return effectiveReady?effective:static_cast<const Policy&>(config);}
-    void Topology(const std::vector<std::string>& ids,Time now) {nodes.clear();manualPreferences.clear();for(auto& id:ids)nodes[id]={now,++serial,State::Desktop,false};}
+    void Topology(const std::vector<std::string>& ids,Time now) {inputBoundary=now;nodes.clear();manualPreferences.clear();for(auto& id:ids)nodes[id]={now,++serial,State::Desktop,false};}
     Preference Pref(const std::string& id) const {
         if(id=="@span")return spanPreference;
         if(auto n=nodes.find(id);n!=nodes.end()&&n->second.manual&&Running(n->second.state)){auto m=manualPreferences.find(id);if(m!=manualPreferences.end()){auto p=m->second;auto base=config.monitors.find(id);p.hardware=p.hardware&&base!=config.monitors.end()&&base->second.hardware;if((base!=config.monitors.end()&&!base->second.enabled)||unidentified.contains(id))p.enabled=false;return p;}}
@@ -459,18 +461,25 @@ struct Controller {
             if(!n.manual||!enabled)n={now,++serial,enabled?State::Desktop:State::Disabled,false};}
         return true;
     }
-    void Reset(Time now) {manualPreferences.clear();for(auto& [id,n]:nodes){(void)id;n={now,++serial,State::Desktop,false};}}
+    void Reset(Time now) {inputBoundary=now;manualPreferences.clear();for(auto& [id,n]:nodes){(void)id;n={now,++serial,State::Desktop,false};}}
     void Snooze(Time now,int minutes){snoozeUntil=minutes>0?now+static_cast<Time>(minutes)*60000:0;for(auto& [id,n]:nodes){(void)id;if(!n.manual)n={now,++serial,State::Desktop,false};}}
+    bool AcceptInput(const std::string& id,const Node& n,Time eventAt) const {
+        return Pref(id).enabled&&!paused&&!blocked&&!n.sticky&&eventAt>inputBoundary&&eventAt>=n.last&&
+            (!n.manual||eventAt>n.last)&&(!Running(n.state)||eventAt>=n.began);
+    }
     void Input(Time now,const std::set<std::string>& targets,bool certain,Time eventAt=UINT64_MAX) {
         for(auto& [id,n]:nodes){auto p=Pref(id);bool local=p.input<0?PolicyNow().perInput:p.input!=0;
-            if(!n.sticky&&(!n.manual||eventAt>n.last)&&(!local||(certain&&targets.contains(id))||id=="@span"))n={now,++serial,State::Desktop,false};}
+            if(AcceptInput(id,n,eventAt)&&(!local||(certain&&targets.contains(id))||id=="@span"))n={now,++serial,State::Desktop,false};}
     }
-    void Activity(Time now,bool keyboard,const std::string& cursor,const std::set<std::string>& focus,bool certain,Time eventAt=UINT64_MAX) {
+    unsigned Activity(Time now,bool keyboard,const std::string& cursor,const std::set<std::string>& focus,bool certain,Time eventAt=UINT64_MAX,bool focusCertain=true) {
+        unsigned accepted=0;
         for(auto& [id,n]:nodes){auto p=Pref(id);int mode=p.input<0?(PolicyNow().perInput?1:0):p.input;
-            // Unknown or queued observations cannot locate activity on a display.
-            // In particular, LASTINPUTINFO may advance before WM_INPUT is read.
-            bool hit=mode==0||(certain&&(mode==2?cursor==id:mode==3?focus.contains(id):cursor==id||(keyboard&&focus.contains(id))));
-            if(!n.sticky&&(!n.manual||eventAt>n.last)&&(hit||id=="@span"))n={now,++serial,State::Desktop,false};}
+            // The queued pointer position is historical. Foreground is only a fresh
+            // heuristic: never credit today's focus for an old key or mouse event.
+            bool pointer=certain&&cursor==id,foreground=certain&&focusCertain&&focus.contains(id);
+            bool hit=mode==0||(mode==2?pointer:mode==3?foreground:pointer||(keyboard&&foreground));
+            if(AcceptInput(id,n,eventAt)&&(hit||id=="@span")){n={now,++serial,State::Desktop,false};++accepted;}}
+        return accepted;
     }
     int Presentation(const Preference& p)const{return p.batteryBlack&&powerSource==PowerSource::DC?-1:p.saver;}
     void Manual(const std::string& id,Time now,bool sticky=false,int presentation=-2) {
@@ -862,6 +871,20 @@ std::atomic<unsigned> diagnostics{};
 struct DiagnosticEvent {Time at;std::string alias,event;DWORD code;};
 std::mutex diagnosticLock;std::deque<DiagnosticEvent> diagnosticEvents;
 void Record(const std::string& alias,const std::string& event,DWORD code=0){std::lock_guard lock(diagnosticLock);if(diagnosticEvents.size()>=128)diagnosticEvents.pop_front();diagnosticEvents.push_back({GetTickCount64(),alias.substr(0,32),event.substr(0,96),code});}
+struct WakeTiming {
+    std::atomic<Time> inputs{},accepted{},invalidTime{},boundaryRejected{},unattributed{},stickyRejected{},focusUnavailable{},readFailures{},
+        inhibited{},queueMaxMs{},heartbeatMaxMs{},inputMaxUs{},reconcileMaxUs{},timerMaxUs{},fileMaxUs{},trayMaxUs{},staleResults{},fileFailures{},trayCalls{};
+} wakeTiming;
+void Maximum(std::atomic<Time>& value,Time sample){auto old=value.load();while(old<sample&&!value.compare_exchange_weak(old,sample)) {}}
+Time Micros(){return static_cast<Time>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());}
+struct Measure {std::atomic<Time>& maximum;Time began=Micros();~Measure(){Maximum(maximum,Micros()-began);}};
+Time heartbeatAt=0;
+void InvalidateFaults();
+bool CachedFault(const std::string& id);
+bool FaultResetPending(const std::string& id);
+void RequestFaultReset(const std::string& id);
+void QueueNotice(const wchar_t* text);
+void Maintain(Time now);
 std::map<std::string,Reason> lastReasons;
 const char* ReasonText(Reason r){switch(r){case Reason::Disabled:return "Disabled";case Reason::Session:return "Session or tray blocked";case Reason::Paused:return "Paused for this session";case Reason::Snoozed:return "Automatic activation snoozed";case Reason::ManualOnly:return "Manual only";case Reason::App:return "Foreground application rule";case Reason::Fullscreen:return "Fullscreen foreground application";case Reason::Stale:return "Observation unavailable or stale";case Reason::Media:return "Media activity (process/window heuristic)";case Reason::Idle:return "Waiting for idle";case Reason::Dim:return "Software dim warning";case Reason::Manual:return "Manual presentation";case Reason::Sticky:return "Sticky presentation";case Reason::Presentation:return "Presentation active";case Reason::Fallback:return "Presentation failed; black fallback";case Reason::HardwareFault:return "Hardware fault quarantined";}return "Unknown";}
 std::wstring ExplanationText(const std::string& id) {
@@ -875,7 +898,7 @@ std::wstring ExplanationText(const std::string& id) {
 int initFault=0;
 std::atomic<DWORD> launchDelay{};
 bool injectedObservations=false;
-int trayFailures=0,configurationFailures=0;
+std::atomic<int> trayFailures{};int configurationFailures=0;
 int legacyStartupOverride=-1,setupCloseResponse=IDNO;
 #endif
 void Note(const wchar_t* event,DWORD code=0) {
@@ -886,10 +909,7 @@ void Note(const wchar_t* event,DWORD code=0) {
     if(debug && diagnostics.fetch_add(1)<1000) Wh_Log(L"%s: %lu",event,code);
 #endif
 }
-void Notice(const wchar_t* text) {
-    NOTIFYICONDATAW n{}; n.cbSize=sizeof(n); n.hWnd=ui; n.uID=1; n.uFlags=NIF_INFO;
-    wcscpy_s(n.szInfoTitle,L"Display Activity Controls for Windhawk"); wcsncpy_s(n.szInfo,text,_TRUNCATE); Shell_NotifyIconW(NIM_MODIFY,&n);
-}
+void Notice(const wchar_t* text) {QueueNotice(text);}
 BOOL CALLBACK EnumMonitor(HMONITOR m,HDC,LPRECT r,LPARAM data) {
     auto list=reinterpret_cast<std::vector<Display>*>(data); MONITORINFOEXW info{}; info.cbSize=sizeof(info);
     if(list->size()>=32||!GetMonitorInfoW(m,&info)) return TRUE;
@@ -930,7 +950,10 @@ std::wstring PowerMarker(const std::string& id) {
     uint64_t hash=1469598103934665603ULL;for(unsigned char c:id){hash^=c;hash*=1099511628211ULL;}
     return configPath+L".power-"+std::to_wstring(hash)+L".pending";
 }
-bool PowerPending(const std::string& id) {return GetFileAttributesW(Extended(PowerMarker(id)).c_str())!=INVALID_FILE_ATTRIBUTES;}
+// A failed query is not proof of absence. Both UI cache and final worker
+// quarantine checks retain faults on access/I/O errors.
+bool MarkerPending(const std::wstring& path){DWORD attributes=GetFileAttributesW(Extended(path).c_str());if(attributes!=INVALID_FILE_ATTRIBUTES)return true;DWORD error=GetLastError();return error!=ERROR_FILE_NOT_FOUND&&error!=ERROR_PATH_NOT_FOUND;}
+bool PowerPending(const std::string& id) {return MarkerPending(PowerMarker(id));}
 std::wstring PowerCancelName(const std::string& token){return L"Local\\DAC-Windhawk-Power-Cancel-"+Wide(token);}
 bool PowerTicket(const std::string& marker,const std::string& id,const std::string& token,bool wake) {
     auto prefix=id+"\n"+token+"\n";return wake?(marker==prefix+"changing"||marker==prefix+"off"):(marker==prefix+"probe");
@@ -1046,11 +1069,12 @@ void PowerWorker(PowerTask* task) {
 }
 void StopPower() {for(auto& task:powerTasks)task->cancel=true;}
 int StartPower(const Display& display,Time generation) {
+    if(FaultResetPending(display.id))return -1; // reserved until disk deletion completes
     if(!display.identified||!controller.Pref(display.id).hardware||controller.blocked)return 0;
     for(auto& task:powerTasks)if(task->id==display.id)return -1; // busy, not consumed
     auto task=std::make_unique<PowerTask>();task->id=display.id;task->generation=generation;
     try{task->worker=std::thread(PowerWorker,task.get());}catch(...){return false;}
-    powerTasks.push_back(std::move(task));return true;
+    powerTasks.push_back(std::move(task));InvalidateFaults();return true;
 }
 
 // A run's worker exclusively owns its process and job. UI owns its HWND. The
@@ -1369,6 +1393,13 @@ bool StartDraftPreview(const Preference& preference) {
 #endif
     runs.push_back(std::move(r));return true;
 }
+// Input dismissal only cancels stale owners and hides their native shells. It
+// never launches work, queries files, joins workers or reports shell notices.
+void ReconcileWake() {
+    Measure measure{wakeTiming.reconcileMaxUs};
+    for(auto& task:powerTasks){auto n=controller.nodes.find(task->id);if(n==controller.nodes.end()||n->second.generation!=task->generation||!Running(n->second.state))task->cancel=true;}
+    for(auto& r:runs)if(!r->contained&&!r->configuration){auto n=controller.nodes.find(r->id);if(n==controller.nodes.end()||n->second.generation!=r->generation||!Running(n->second.state)){r->cancel=true;if(r->window)ShowWindow(r->window,SW_HIDE);}}
+}
 void Reconcile() {
     for(auto it=powerTasks.begin();it!=powerTasks.end();) {
         auto& task=**it;auto n=controller.nodes.find(task.id);
@@ -1383,7 +1414,7 @@ void Reconcile() {
             if(status==2)Notice(L"Hardware power request failed or is quarantined. Black fallback remains. Check the monitor's DDC/CI setting; no automatic retry in this idle session.");
             if(status==3)Notice(L"Monitor wake failed. Use its physical power button. Hardware control remains quarantined until Reset hardware fault in Settings.");
         }
-        if(completed)it=powerTasks.erase(it);else ++it;
+        if(completed){it=powerTasks.erase(it);InvalidateFaults();}else ++it;
     }
     for(auto it=runs.begin();it!=runs.end();) {
         auto& r=**it; auto n=controller.nodes.find(r.id);
@@ -1440,26 +1471,52 @@ void Reset() { controller.Reset(GetTickCount64()); StopRuns(); nextPoll=0; }
 void RefreshTopology() {
     Reset(); displays=Catalog(); std::vector<std::string> ids;
     for(auto& d:displays) ids.push_back(d.id);
-    controller.Topology(ids,GetTickCount64());controller.unidentified.clear();for(auto& d:displays)if(!d.identified)controller.unidentified.insert(d.id);InvalidateMedia();topologyPending=false;
+    controller.Topology(ids,GetTickCount64());controller.unidentified.clear();for(auto& d:displays)if(!d.identified)controller.unidentified.insert(d.id);InvalidateMedia();InvalidateFaults();topologyPending=false;
 }
 void SetBlocked() {controller.blocked=locked||suspended||displayOff||!trayPresent;controller.candidateSince=GetTickCount64();controller.candidateProfile.clear();Reset();InvalidateMedia();}
 std::set<std::string> ForegroundDisplays(HWND window) {
     std::set<std::string> ids;RECT bounds{};if(!window||!IsWindowVisible(window)||IsIconic(window)||!GetWindowRect(window,&bounds))return ids;
     for(auto& d:displays)if(MediaOverlap({bounds.left,bounds.top,bounds.right,bounds.bottom},{d.rect.left,d.rect.top,d.rect.right,d.rect.bottom}))ids.insert(d.id);return ids;
 }
+// Expand the low 32-bit queue timestamp against the same uptime sample. Ages
+// at or beyond half the DWORD range are ambiguous (including future stamps).
+bool MessageTimeAt(Time now,DWORD stamp,Time& at,DWORD& age){age=static_cast<DWORD>(now)-stamp;if(age>=0x80000000u||age>now)return false;at=now-age;return true;}
+MSG dispatchedMessage{};
+void DeliverInput(const RAWINPUT& input,const MSG& message,Time now) {
+    Measure measure{wakeTiming.inputMaxUs};++wakeTiming.inputs;
+    bool keyboard=input.header.dwType==RIM_TYPEKEYBOARD;if(!keyboard&&input.header.dwType!=RIM_TYPEMOUSE)return;
+    Time at=0;DWORD age=0;if(!MessageTimeAt(now,message.time,at,age)){++wakeTiming.invalidTime;return;}
+    Maximum(wakeTiming.queueMaxMs,age);
+    if(at<=controller.inputBoundary||topologyPending){++wakeTiming.boundaryRejected;return;}
+    std::string cursor;for(auto& d:displays)if(PtInRect(&d.rect,message.pt)){if(!cursor.empty()){cursor.clear();break;}cursor=d.id;}
+    bool fresh=age<=250;auto focus=fresh?ForegroundDisplays(GetForegroundWindow()):std::set<std::string>{};
+    if(!fresh)++wakeTiming.focusUnavailable;
+    unsigned accepted=controller.Activity(now,keyboard,cursor,focus,true,at,fresh);
+    wakeTiming.accepted+=accepted;
+    if(!accepted){bool sticky=false,boundary=false,inhibited=false;
+        for(auto& [id,n]:controller.nodes){auto p=controller.Pref(id);int mode=p.input<0?(controller.PolicyNow().perInput?1:0):p.input;
+            bool pointer=cursor==id,foreground=fresh&&focus.contains(id);
+            bool hit=id=="@span"||mode==0||(mode==2?pointer:mode==3?foreground:pointer||(keyboard&&foreground));if(!hit)continue;
+            sticky=sticky||n.sticky;boundary=boundary||at<n.last||(n.manual&&at<=n.last)||(Running(n.state)&&at<n.began);inhibited=inhibited||!p.enabled||controller.paused||controller.blocked;
+        }
+        if(boundary)++wakeTiming.boundaryRejected;else if(sticky)++wakeTiming.stickyRejected;else if(inhibited)++wakeTiming.inhibited;else ++wakeTiming.unattributed;
+    }
+    ReconcileWake();
+}
 void Input(HRAWINPUT handle) {
+    Measure measure{wakeTiming.inputMaxUs};
 #ifdef DAC_HARNESS
     if(injectedObservations)return;
 #endif
+    // MSG keeps full signed coordinates. Nested modal loops dispatch outside
+    // UiMain: use their thread's signed GetMessagePos/time fallback immediately.
+    MSG message=dispatchedMessage;DWORD stamp=static_cast<DWORD>(GetMessageTime());
+    if(message.message!=WM_INPUT||message.lParam!=reinterpret_cast<LPARAM>(handle)||message.time!=stamp){message={};message.time=stamp;DWORD position=GetMessagePos();message.pt={static_cast<short>(LOWORD(position)),static_cast<short>(HIWORD(position))};}
     RAWINPUT input{};UINT bytes=sizeof(input);auto now=GetTickCount64();
-    if(GetRawInputData(handle,RID_INPUT,&input,&bytes,sizeof(RAWINPUTHEADER))==UINT(-1)){controller.Input(now,{},false);return;}
-    bool keyboard=input.header.dwType==RIM_TYPEKEYBOARD;if(!keyboard&&input.header.dwType!=RIM_TYPEMOUSE)return;
-    LASTINPUTINFO last{sizeof(last),0};if(GetLastInputInfo(&last))rawStamp=last.dwTime;
-    POINT point{};std::string cursor;HMONITOR monitor=GetCursorPos(&point)?MonitorFromPoint(point,MONITOR_DEFAULTTONULL):nullptr;for(auto& d:displays)if(d.handle==monitor)cursor=d.id;
-    auto focus=ForegroundDisplays(GetForegroundWindow());DWORD age=GetTickCount()-static_cast<DWORD>(GetMessageTime());
-    controller.Activity(now,keyboard,cursor,focus,age<=250,age>now?0:now-age);Reconcile();
+    if(GetRawInputData(handle,RID_INPUT,&input,&bytes,sizeof(RAWINPUTHEADER))==UINT(-1)){++wakeTiming.readFailures;Time at=0;DWORD age=0;if(!topologyPending&&MessageTimeAt(now,message.time,at,age)){controller.Input(now,{},false,at);ReconcileWake();}return;}
+    rawStamp=message.time;DeliverInput(input,message,now);
 }
-void CheckInputFallback(){LASTINPUTINFO last{sizeof(last),0};if(!GetLastInputInfo(&last)){controller.Input(GetTickCount64(),{},false);return;}if(last.dwTime!=lastInputStamp&&last.dwTime!=rawStamp)controller.Input(GetTickCount64(),{},false);lastInputStamp=last.dwTime;}
+void CheckInputFallback(){LASTINPUTINFO last{sizeof(last),0};if(!GetLastInputInfo(&last)){++wakeTiming.readFailures;return;}Time now=GetTickCount64(),at=0;DWORD age=0;if(last.dwTime!=lastInputStamp&&last.dwTime!=rawStamp&&MessageTimeAt(now,last.dwTime,at,age))controller.Input(now,{},false,at);lastInputStamp=last.dwTime;}
 void ObserveForeground() {
     HWND window=GetForegroundWindow();DWORD pid=0;GetWindowThreadProcessId(window,&pid);controller.fullscreen.clear();
     auto ids=ForegroundDisplays(window);bool owned=pid==GetCurrentProcessId()||IsOwned(pid);controller.foreground={ProcessIdentity(pid),ids,window!=nullptr,owned};if(owned){controller.foreground.app={};controller.foreground.monitors.clear();}
@@ -1467,18 +1524,133 @@ void ObserveForeground() {
     // Focus changes (including those caused by dismissing a presentation) are
     // observations for media/profile rules, not independent input events.
 }
-bool Tray(bool remove=false) {
+// One joined owner performs filesystem/shell maintenance. At most one request,
+// one result and 32 reset reservations exist. No external call holds this lock.
+struct MaintenanceRequest {
+    Time faultEpoch=0,trayEpoch=0;std::vector<std::pair<std::string,std::wstring>> paths,resets;
+    bool tray=false,remove=false,present=false;int trayState=0;HWND window{};HICON icon{};std::wstring notice;
+};
+struct MaintenanceResult {
+    Time faultEpoch=0,trayEpoch=0;std::map<std::string,int> faults;std::set<std::string> resetFailed,resetDone;
+    bool tray=false,present=false;
+};
+std::mutex maintenanceLock;std::condition_variable maintenanceChanged;std::thread maintenanceWorker;
+MaintenanceRequest maintenancePending;MaintenanceResult maintenanceResult;bool maintenanceResultReady=false,maintenanceStop=false;
+Time faultEpoch=1,trayEpoch=1,nextFault=0;bool faultsDirty=true,trayOutstanding=false;int requestedTray=-1;
+std::map<std::string,int> faultCache;std::set<std::string> resettingFaults;
 #ifdef DAC_HARNESS
-    if(remove)trayPresent=false;else if(trayFailures>0){--trayFailures;trayPresent=false;}else trayPresent=true;
-    return remove||trayPresent; // test fake: never creates a desktop tray icon
-#else
-    NOTIFYICONDATAW n{}; n.cbSize=sizeof(n); n.hWnd=ui; n.uID=1; n.uFlags=NIF_MESSAGE|NIF_ICON|NIF_TIP;
-    n.uCallbackMessage=kTray; n.hIcon=(controller.Any()?theme.active:theme.small);
-    auto text=std::wstring(L"Display Activity Controls for Windhawk — ")+(controller.paused?L"paused":controller.Any()?L"presenting":controller.config.automatic?L"watching idle":L"manual only");
-    wcsncpy_s(n.szTip,text.c_str(),_TRUNCATE);
-    bool ok=!!Shell_NotifyIconW(remove?NIM_DELETE:trayPresent?NIM_MODIFY:NIM_ADD,&n);
-    if(remove) trayPresent=false; else trayPresent=ok; return ok;
+std::atomic<DWORD> maintenanceFileDelay{},maintenanceTrayDelay{};
+std::atomic<bool> maintenanceFileFail{},maintenanceInFile{},maintenanceInTray{};
 #endif
+void InvalidateFaults(){++faultEpoch;faultsDirty=true;faultCache.clear();}
+bool CachedFault(const std::string& id){auto i=faultCache.find(id);return i==faultCache.end()||i->second;}
+const char* FaultCacheState(const std::string& id){auto i=faultCache.find(id);return i==faultCache.end()?"refresh pending":i->second==2?"query failed":i->second==1?"marker retained":"clear";}
+bool FaultResetPending(const std::string& id){return resettingFaults.contains(id);}
+void QueueNotice(const wchar_t* text){std::lock_guard lock(maintenanceLock);maintenancePending.notice=std::wstring(text).substr(0,255);maintenanceChanged.notify_one();}
+void RequestFaultReset(const std::string& id){
+    for(auto& task:powerTasks)if(task->id==id)return;
+    if(resettingFaults.size()>=32||resettingFaults.contains(id))return;
+    resettingFaults.insert(id);InvalidateFaults();
+    std::lock_guard lock(maintenanceLock);maintenancePending.resets.emplace_back(id,PowerMarker(id));maintenanceChanged.notify_one();
+}
+void MaintenanceMain(){
+    HWND window=ui;bool shellPresent=false;
+    while(true){MaintenanceRequest request;
+        {std::unique_lock lock(maintenanceLock);maintenanceChanged.wait(lock,[]{return maintenanceStop||(!maintenanceResultReady&&(maintenancePending.faultEpoch||maintenancePending.tray||!maintenancePending.resets.empty()||!maintenancePending.notice.empty()));});
+            if(maintenanceStop)break;request=std::move(maintenancePending);maintenancePending={};}
+        MaintenanceResult result;result.faultEpoch=request.faultEpoch;result.trayEpoch=request.trayEpoch;
+        if(request.faultEpoch||!request.resets.empty()){
+            Measure measure{wakeTiming.fileMaxUs};
+#ifdef DAC_HARNESS
+            maintenanceInFile=true;if(auto delay=maintenanceFileDelay.load())Sleep(delay);
+#endif
+            for(auto& [id,path]:request.resets){
+                bool removed=!!DeleteFileW(Extended(path).c_str());DWORD error=removed?ERROR_SUCCESS:GetLastError();
+                if(!removed&&error!=ERROR_FILE_NOT_FOUND&&error!=ERROR_PATH_NOT_FOUND)result.resetFailed.insert(id);
+                result.resetDone.insert(id);
+            }
+            for(auto& [id,path]:request.paths){DWORD attributes=GetFileAttributesW(Extended(path).c_str());DWORD error=attributes==INVALID_FILE_ATTRIBUTES?GetLastError():ERROR_SUCCESS;
+#ifdef DAC_HARNESS
+                if(maintenanceFileFail){attributes=INVALID_FILE_ATTRIBUTES;error=ERROR_ACCESS_DENIED;}
+#endif
+                bool failed=attributes==INVALID_FILE_ATTRIBUTES&&error!=ERROR_FILE_NOT_FOUND&&error!=ERROR_PATH_NOT_FOUND;
+                if(failed)++wakeTiming.fileFailures;result.faults[id]=failed?2:attributes!=INVALID_FILE_ATTRIBUTES?1:0;
+            }
+#ifdef DAC_HARNESS
+            maintenanceInFile=false;
+#endif
+        }
+        bool stopping=false;{std::lock_guard lock(maintenanceLock);stopping=maintenanceStop;}
+        if(!stopping&&(request.tray||!request.notice.empty())){
+            Measure measure{wakeTiming.trayMaxUs};
+#ifdef DAC_HARNESS
+            maintenanceInTray=true;if(auto delay=maintenanceTrayDelay.load())Sleep(delay);
+#endif
+            if(request.tray){++wakeTiming.trayCalls;result.tray=true;
+#ifdef DAC_HARNESS
+                int failures=trayFailures.load();if(failures>0)trayFailures.fetch_sub(1);shellPresent=!request.remove&&failures<=0;
+#else
+                NOTIFYICONDATAW n{};n.cbSize=sizeof(n);n.hWnd=request.window;n.uID=1;n.uFlags=NIF_MESSAGE|NIF_ICON|NIF_TIP;n.uCallbackMessage=kTray;n.hIcon=request.icon;
+                const wchar_t* states[]={L"manual only",L"watching idle",L"presenting",L"paused"};auto tip=std::wstring(L"Display Activity Controls for Windhawk — ")+states[request.trayState];wcsncpy_s(n.szTip,tip.c_str(),_TRUNCATE);
+                bool ok=!!Shell_NotifyIconW(request.remove?NIM_DELETE:shellPresent?NIM_MODIFY:NIM_ADD,&n);
+                shellPresent=!request.remove&&ok;
+#endif
+                result.present=shellPresent;
+            }
+#ifndef DAC_HARNESS
+            if(!request.notice.empty()){NOTIFYICONDATAW n{};n.cbSize=sizeof(n);n.hWnd=window;n.uID=1;n.uFlags=NIF_INFO;wcscpy_s(n.szInfoTitle,L"Display Activity Controls for Windhawk");wcsncpy_s(n.szInfo,request.notice.c_str(),_TRUNCATE);Shell_NotifyIconW(NIM_MODIFY,&n);}
+#endif
+#ifdef DAC_HARNESS
+            maintenanceInTray=false;
+#endif
+        }
+        if(request.icon)DestroyIcon(request.icon);
+        {std::lock_guard lock(maintenanceLock);if(!maintenanceStop){maintenanceResult=std::move(result);maintenanceResultReady=true;}}
+    }
+#ifndef DAC_HARNESS
+    if(window){NOTIFYICONDATAW n{};n.cbSize=sizeof(n);n.hWnd=window;n.uID=1;Shell_NotifyIconW(NIM_DELETE,&n);}
+#else
+    (void)window;(void)shellPresent;
+#endif
+}
+bool Tray(bool remove=false){
+    MaintenanceRequest request;request.tray=true;request.remove=remove;request.present=trayPresent;request.window=ui;
+    request.trayState=controller.paused?3:controller.Any()?2:controller.config.automatic?1:0;
+    request.icon=remove?nullptr:CopyIcon(controller.Any()?theme.active:theme.small);request.trayEpoch=++trayEpoch;
+    trayOutstanding=true;requestedTray=request.trayState;nextTray=GetTickCount64()+(trayPresent?30000:1000);
+    std::lock_guard lock(maintenanceLock);if(maintenancePending.icon)DestroyIcon(maintenancePending.icon);
+    maintenancePending.tray=true;maintenancePending.remove=remove;maintenancePending.present=request.present;maintenancePending.window=request.window;
+    maintenancePending.trayState=request.trayState;maintenancePending.icon=request.icon;maintenancePending.trayEpoch=request.trayEpoch;maintenanceChanged.notify_one();return true;
+}
+void Maintain(Time now){
+    MaintenanceResult result;bool got=false;
+    {std::lock_guard lock(maintenanceLock);if(maintenanceResultReady){result=std::move(maintenanceResult);maintenanceResult={};maintenanceResultReady=false;got=true;maintenanceChanged.notify_one();}}
+    if(got){
+        // A reset reservation survives epoch invalidation until its actual disk
+        // operation completes. StartPower cannot create a ticket during deletion.
+        for(auto& id:result.resetDone){resettingFaults.erase(id);if(result.resetFailed.contains(id))Notice(L"Could not clear hardware fault file; check profile storage permissions.");else powerStatus.erase(id);}
+        if(!result.resetDone.empty())InvalidateFaults();
+        if(result.faultEpoch){if(result.faultEpoch==faultEpoch)faultCache=std::move(result.faults);else ++wakeTiming.staleResults;}
+        if(result.tray){if(result.trayEpoch==trayEpoch){trayOutstanding=false;nextTray=now+(result.present?30000:1000);bool previous=trayPresent;trayPresent=result.present;if(previous!=trayPresent)SetBlocked();}else ++wakeTiming.staleResults;}
+    }
+    if(faultsDirty||now>=nextFault){
+        MaintenanceRequest request;request.faultEpoch=faultEpoch;for(auto& d:displays)request.paths.emplace_back(d.id,PowerMarker(d.id));
+        {std::lock_guard lock(maintenanceLock);maintenancePending.faultEpoch=request.faultEpoch;maintenancePending.paths=std::move(request.paths);maintenanceChanged.notify_one();}
+        faultsDirty=false;nextFault=now+5000;
+    }
+    int state=controller.paused?3:controller.Any()?2:controller.config.automatic?1:0;
+    if(state!=requestedTray||(!trayOutstanding&&now>=nextTray))Tray();
+}
+void StartMaintenance(){
+    {std::lock_guard lock(maintenanceLock);maintenanceStop=false;maintenanceResultReady=false;maintenancePending={};maintenanceResult={};}
+    faultCache.clear();resettingFaults.clear();faultEpoch=trayEpoch=1;nextFault=0;faultsDirty=true;trayOutstanding=false;requestedTray=-1;
+    maintenanceWorker=std::thread(MaintenanceMain);
+}
+void StopMaintenance(){
+    {std::lock_guard lock(maintenanceLock);maintenanceStop=true;maintenanceChanged.notify_one();}
+    if(maintenanceWorker.joinable())maintenanceWorker.join();
+    {std::lock_guard lock(maintenanceLock);if(maintenancePending.icon)DestroyIcon(maintenancePending.icon);maintenancePending={};maintenanceResult={};maintenanceResultReady=false;}
+    resettingFaults.clear();trayPresent=false;
 }
 bool LegacyStartupPresent();
 void RegisterControls() {
@@ -1544,7 +1716,7 @@ void UpdateEditorStatus() {
     auto& d=editorDisplays[selection];auto n=controller.nodes.find(d.id);std::wstring text=d.identified?L"State: ":L"Unidentified output; protection unavailable. ";
     if(n!=controller.nodes.end())text+=ExplanationText(d.id);else text+=L"Disconnected (draft retained)";
     if(n!=controller.nodes.end()&&n->second.sticky)text+=L" (sticky)";
-    if(powerStatus.contains(d.id))text+=L"\n"+powerStatus[d.id];else if(PowerPending(d.id))text+=L"\nHardware fault retained; confirm physical wake before reset.";
+    if(powerStatus.contains(d.id))text+=L"\n"+powerStatus[d.id];else if(CachedFault(d.id))text+=L"\nHardware fault state: "+Wide(FaultCacheState(d.id))+L"; confirm physical wake before reset.";
     SetDlgItemTextW(editor,147,text.c_str());
 }
 bool ValidMonitorNumbers() {
@@ -1733,7 +1905,9 @@ std::string SafeDiagnosticEvent(const std::string& event){for(unsigned i=0;i<=st
 std::string SafeDiagnosticAlias(const std::string& alias){int number=0;if(alias.starts_with("Display ")&&Number(alias.substr(8),number)&&number>0&&number<=64)return alias;return "host";}
 std::string DiagnosticText(){std::ostringstream out;out<<"Display Activity Controls for Windhawk "<<kVersion<<"\nRedacted local diagnostics; no paths, identities, titles or recovery secrets.\n";
     auto& policy=controller.PolicyNow();out<<"automatic="<<policy.automatic<<" timeout="<<policy.timeout<<" poll="<<policy.poll<<" controllerInput="<<policy.controllerInput<<" profileActive="<<!controller.activeProfile.empty()<<"\n";
-    for(size_t i=0;i<displays.size();++i){auto& d=displays[i];auto p=controller.Pref(d.id);out<<"Display "<<i+1<<": enabled="<<p.enabled<<" saver="<<p.saver<<" dimOpacity="<<p.dim<<" inputMode="<<p.input<<" hardwareOptIn="<<p.hardware<<" faultRetained="<<PowerPending(d.id)<<"\n";}
+    for(size_t i=0;i<displays.size();++i){auto& d=displays[i];auto p=controller.Pref(d.id);out<<"Display "<<i+1<<": enabled="<<p.enabled<<" saver="<<p.saver<<" dimOpacity="<<p.dim<<" inputMode="<<p.input<<" hardwareOptIn="<<p.hardware<<" faultState="<<FaultCacheState(d.id)<<"\n";}
+    out<<"Wake timing maxima (queue/heartbeat ms, execution us; no physical render timing): queue="<<wakeTiming.queueMaxMs<<" heartbeat="<<wakeTiming.heartbeatMaxMs<<" input="<<wakeTiming.inputMaxUs<<" reconcile="<<wakeTiming.reconcileMaxUs<<" timer="<<wakeTiming.timerMaxUs<<" file="<<wakeTiming.fileMaxUs<<" tray="<<wakeTiming.trayMaxUs<<"\n";
+    out<<"Wake counters: packets="<<wakeTiming.inputs<<" acceptedTargets="<<wakeTiming.accepted<<" invalidTimestamp="<<wakeTiming.invalidTime<<" sessionTopologyBoundary="<<wakeTiming.boundaryRejected<<" unknownScope="<<wakeTiming.unattributed<<" sticky="<<wakeTiming.stickyRejected<<" disabledPausedBlocked="<<wakeTiming.inhibited<<" historicalFocusUnavailable="<<wakeTiming.focusUnavailable<<" readFailure="<<wakeTiming.readFailures<<" staleMaintenance="<<wakeTiming.staleResults<<" fileFailure="<<wakeTiming.fileFailures<<" trayCalls="<<wakeTiming.trayCalls<<"\n";
     AdapterSnapshot sample;{std::lock_guard lock(observationLock);sample=adapters;}out<<"powerSource="<<static_cast<int>(sample.power)<<" xinputAvailable="<<sample.controllerAvailable<<" controllerConnected="<<sample.connected<<"\n";
     {std::lock_guard lock(diagnosticLock);for(auto& e:diagnosticEvents)out<<e.at<<' '<<SafeDiagnosticAlias(e.alias)<<' '<<SafeDiagnosticEvent(e.event)<<" code="<<e.code<<'\n';}return out.str();}
 void ExportDiagnostics(HWND owner){auto path=SelectLocalFile(owner,true,L"Export redacted diagnostics locally");if(path.empty())return;DWORD error=0;if(!WriteFileText(path,DiagnosticText(),error))Notice(L"Diagnostics export failed; choose a writable local file.");else Notice(L"Redacted diagnostics saved locally.");}
@@ -1985,7 +2159,7 @@ LRESULT CALLBACK EditorProc(HWND w,UINT msg,WPARAM wp,LPARAM lp) {
             auto selected=editorDisplays[selection].id;bool active=false;for(auto& task:powerTasks)if(task->id==selected)active=true;
             if(active)Notice(L"Stop this monitor and wait for hardware cleanup before resetting its fault.");
             else if(MessageBoxW(w,L"Confirm the display is awake using its physical button. Clear the saved hardware fault to permit another explicit power attempt?",L"Reset hardware fault",MB_YESNO|MB_ICONQUESTION)==IDYES) {
-                if(!PowerPending(selected)||DeleteFileW(Extended(PowerMarker(selected)).c_str()))powerStatus.erase(selected);else Notice(L"Could not clear hardware fault file; check profile storage permissions.");
+                RequestFaultReset(selected);
             }
         }
         return 0;
@@ -2150,7 +2324,7 @@ bool SessionLocked() {
     } return result;
 }
 LRESULT CALLBACK WindowProc(HWND w,UINT msg,WPARAM wp,LPARAM lp) {
-    if(taskbar&&msg==taskbar&&w==ui) { trayPresent=false; SetBlocked();nextTray=0; return 0; }
+    if(taskbar&&msg==taskbar&&w==ui) { ++trayEpoch;trayOutstanding=false;requestedTray=-1;trayPresent=false; SetBlocked();nextTray=0; return 0; }
     switch(msg) {
 #ifdef DAC_HARNESS
     case WM_APP+100: {ShowSettings();bool created=editor&&GetDlgItem(editor,130)&&GetDlgItem(editor,122);if(editor) DestroyWindow(editor);return created&&editorFont==nullptr;}
@@ -2185,6 +2359,7 @@ LRESULT CALLBACK WindowProc(HWND w,UINT msg,WPARAM wp,LPARAM lp) {
             if(p&&p->PowerSetting==GUID_CONSOLE_DISPLAY_STATE&&p->DataLength==sizeof(DWORD)) { DWORD state=0; memcpy(&state,p->Data,sizeof(state)); displayOff=state==0; }
         } if(wasBlocked!=(locked||suspended||displayOff||!trayPresent)||wp==PBT_APMRESUMEAUTOMATIC||wp==PBT_APMRESUMESUSPEND)SetBlocked();return TRUE;}
     case WM_TIMER:{
+        Measure timerMeasure{wakeTiming.timerMaxUs};auto heartbeat=GetTickCount64();if(heartbeatAt)Maximum(wakeTiming.heartbeatMaxMs,heartbeat-heartbeatAt);heartbeatAt=heartbeat;
         if(WaitForSingleObject(stopEvent,0)==WAIT_OBJECT_0) { PostMessageW(w,kQuit,0,0); return 0; }
         if(topologyPending) { RefreshTopology(); }
         auto now=GetTickCount64();
@@ -2206,12 +2381,9 @@ LRESULT CALLBACK WindowProc(HWND w,UINT msg,WPARAM wp,LPARAM lp) {
         if(now>=nextPoll) { Media m; {std::lock_guard lock(observationLock);m=observation;} controller.Tick(now,m);nextPoll=now+std::min(controller.PolicyNow().poll,250); }
         // Identity failures and clone sources are ineligible even for automatic policy.
         for(auto& d:displays) if(!d.identified) controller.nodes[d.id].state=State::Disabled;
-        controller.hardwareFaults.clear();for(size_t i=0;i<displays.size();++i){auto& d=displays[i];bool activePower=false;for(auto& task:powerTasks)if(task->id==d.id&&!task->done&&task->status<=1)activePower=true;if(PowerPending(d.id)&&!activePower)controller.hardwareFaults.insert(d.id);Media reasonObservation;{std::lock_guard lock(observationLock);reasonObservation=observation;}auto e=controller.Explain(d.id,reasonObservation,now);if(!lastReasons.contains(d.id)||lastReasons[d.id]!=e.primary){lastReasons[d.id]=e.primary;Record("Display "+std::to_string(i+1),ReasonText(e.primary));}}
+        controller.hardwareFaults.clear();for(size_t i=0;i<displays.size();++i){auto& d=displays[i];bool activePower=false;for(auto& task:powerTasks)if(task->id==d.id&&!task->done&&task->status<=1)activePower=true;if(CachedFault(d.id)&&!activePower)controller.hardwareFaults.insert(d.id);Media reasonObservation;{std::lock_guard lock(observationLock);reasonObservation=observation;}auto e=controller.Explain(d.id,reasonObservation,now);if(!lastReasons.contains(d.id)||lastReasons[d.id]!=e.primary){lastReasons[d.id]=e.primary;Record("Display "+std::to_string(i+1),ReasonText(e.primary));}}
         Reconcile();
-#ifdef DAC_HARNESS
-        if(injectedObservations) return 0;
-#endif
-        if(now>=nextTray) { bool previous=trayPresent;Tray();if(previous!=trayPresent) SetBlocked();nextTray=now+(trayPresent?5000:1000); } return 0;
+        Maintain(now);return 0;
     }
     case WM_QUERYENDSESSION:SetEvent(stopEvent);return TRUE;
     case WM_CLOSE:if(w==ui)SetEvent(stopEvent);else for(auto& r:runs)if(r->window==w&&r->contained){r->cancel=true;ShowWindow(w,SW_HIDE);}return 0;
@@ -2273,12 +2445,16 @@ DWORD WINAPI UiMain(void*) {
     controller.legacyAutomationBlocked=LegacyStartupPresent();
     if(controller.legacyAutomationBlocked) { controller.config.automatic=false; startupNotice=L"Legacy startup detected; automatic activation withheld. Disable standalone startup and exit it before enabling automatic mode here."; }
     debug=controller.config.debug; RefreshTopology();
-    if(ui) Tray();
+    bool maintenanceOK=false;
+    if(ui){try{StartMaintenance();maintenanceOK=true;Maintain(GetTickCount64());}catch(...){maintenanceOK=false;}}
+    // Startup precedes input/session activation. Let a quick initial tray result
+    // establish availability; a slow shell remains blocked and recovers later.
+    if(maintenanceOK){Time until=GetTickCount64()+100;while(!trayPresent&&GetTickCount64()<until){Sleep(1);Maintain(GetTickCount64());}}
 #ifdef DAC_HARNESS
     controller.config.automatic=false; // test exemptions, never in mod
 #endif
     controller.blocked=locked||!trayPresent;
-    ready=dpiOK&&imagingOK&&theme.small&&theme.large&&theme.active&&ui&&inputOK&&sessionOK&&powerNotification&&SetTimer(ui,1,50,nullptr)&&!configPath.empty();
+    ready=maintenanceOK&&dpiOK&&imagingOK&&theme.small&&theme.large&&theme.active&&ui&&inputOK&&sessionOK&&powerNotification&&SetTimer(ui,1,50,nullptr)&&!configPath.empty();
     if(ready)RegisterControls();
     if(ready&&!startupNotice.empty()) Notice(startupNotice.c_str());
 #ifndef DAC_HARNESS
@@ -2286,16 +2462,16 @@ DWORD WINAPI UiMain(void*) {
 #endif
     SetEvent(readyEvent); MSG msg{};
     if(ready) while(true) { int status=GetMessageW(&msg,nullptr,0,0); if(status<=0) break;
-        HWND dialog=setupWindow?setupWindow:workspace?workspace:options?options:editor;if(!dialog||!IsDialogMessageW(dialog,&msg)) { TranslateMessage(&msg); DispatchMessageW(&msg); }
+        dispatchedMessage=msg;HWND dialog=setupWindow?setupWindow:workspace?workspace:options?options:editor;if(!dialog||!IsDialogMessageW(dialog,&msg)) { TranslateMessage(&msg); DispatchMessageW(&msg); }dispatchedMessage={};
     }
-    SetEvent(stopEvent); StopRuns();
+    SetEvent(stopEvent); StopRuns();StopMaintenance();
     for(auto& task:powerTasks)if(task->worker.joinable())task->worker.join();powerTasks.clear();
     for(auto& r:runs) { if(r->worker.joinable()) r->worker.join(); if(r->window) { {std::lock_guard lock(registryLock);ownedWindows.erase(r->window);} DestroyWindow(r->window); } } runs.clear();
     if(workspace)DestroyWindow(workspace);if(setupWindow)DestroyWindow(setupWindow);for(auto& item:identifyWindows){{std::lock_guard lock(registryLock);ownedWindows.erase(item.first);}DestroyWindow(item.first);}identifyWindows.clear();identifyLabels.clear();
     if(editor) DestroyWindow(editor);
     RAWINPUTDEVICE remove[]={{1,2,RIDEV_REMOVE,nullptr},{1,6,RIDEV_REMOVE,nullptr}}; if(inputOK) RegisterRawInputDevices(remove,2,sizeof(remove[0]));
     if(powerNotification) { UnregisterPowerSettingNotification(powerNotification); powerNotification=nullptr; }
-    if(ui) { UnregisterHotKey(ui,10);UnregisterHotKey(ui,11);KillTimer(ui,1); WTSUnRegisterSessionNotification(ui); Tray(true); DestroyWindow(ui); ui=nullptr; }
+    if(ui) { UnregisterHotKey(ui,10);UnregisterHotKey(ui,11);KillTimer(ui,1); WTSUnRegisterSessionNotification(ui); DestroyWindow(ui); ui=nullptr; }
     if(setupRegistered)UnregisterClassW(L"DAC-Windhawk-Setup",wc.hInstance);if(workspaceRegistered)UnregisterClassW(kWorkspace,wc.hInstance);
     if(optionsRegistered)UnregisterClassW(kOptions,wc.hInstance);
     if(editorRegistered) UnregisterClassW(kEditor,wc.hInstance); if(registered) UnregisterClassW(kClass,wc.hInstance);
@@ -2323,7 +2499,7 @@ void Shutdown() {
 bool Initialize() {
     unloading=false; ready=false; safetyOK=false; startupComplete=false; controller=Controller{};
     locked=suspended=displayOff=topologyPending=false; lastInputStamp=rawStamp=0; diagnostics=0;
-    nextPoll=nextTray=0;trayPresent=false;powerStatus.clear();adapters={};consumedControllerInput=0;lastReasons.clear();
+    heartbeatAt=0;nextPoll=nextTray=0;trayPresent=false;powerStatus.clear();adapters={};consumedControllerInput=0;lastReasons.clear();
 #ifdef DAC_HARNESS
     singleton=CreateMutexW(nullptr,FALSE,(testStopName+L"-singleton").c_str());
 #else

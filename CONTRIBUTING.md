@@ -23,8 +23,8 @@ no code-coverage percentage is claimed.
 | --- | --- |
 | Compile | x86 and x86-64 mod/harness builds with warnings treated as errors, using the pinned Windhawk 1.7.3 toolchain |
 | ARM64 probe | Mod and both harnesses cross-compile/link with ARM64 PE headers; no ARM execution or host support claim |
-| Runtime tests | 16 groups per architecture, including storage, policy, process containment, lifecycle and hidden native UI checks |
-| Regression and packaging | Version checks, both historical-parser checks, 34 evidence-rejection cases and complete archive verification |
+| Runtime tests | 17 groups per architecture, including storage, policy, process containment, lifecycle and hidden native UI checks |
+| Regression and packaging | Version checks, both historical-parser checks, 37 evidence-rejection cases and complete archive verification |
 | Release publication | A matching version tag repeats validation, then publishes source, evidence ZIP and download checksums |
 
 A red historical run belongs to its recorded commit. It remains in Actions even
@@ -67,8 +67,8 @@ From the checkout root in PowerShell 7:
 ./windhawk/tools/produce-release.ps1
 ```
 
-This builds both x86 and x86-64, runs sixteen test groups on each, validates the
-historical parser regression fixtures, runs 34 package rejection cases, and
+This builds both x86 and x86-64, runs seventeen test groups on each, validates the
+historical parser regression fixtures, runs 37 package rejection cases, and
 verifies the generated source bundle. Outputs are ignored under `build/`.
 The process does not install the mod or execute physical monitor-power tests.
 
@@ -88,3 +88,6 @@ receipts can contain machine paths.
 Installation in Windhawk uses the complete mod source directly and does not
 require maintainer build tools. Record real desktop/hardware observations
 separately from hidden-window or simulated test results.
+
+The [native wake report](windhawk/docs/NATIVE_WAKE.md) documents the durable queued-input
+regression group, compatible old-source negative control and physical evidence limits.

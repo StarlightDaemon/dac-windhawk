@@ -21,7 +21,9 @@ $source=Join-Path $fixture 'windhawk/mods/dac-windhawk.wh.cpp'
 $text=[IO.File]::ReadAllText($source).Replace('constexpr char kVersion[]="'+$next+'";','constexpr char kVersion[]="wrong";')
 [IO.File]::WriteAllText($source,$text)
 Reject {& $command} 'Diagnostic version differs'
-if((Dac-ReleaseSpec '0.3.0').checks.Count -ne 16 -or (Dac-ReleaseSpec '1.0.0').cases.Count -ne 34){throw 'Future release weakened evidence contract'}
+if((Dac-ReleaseSpec '0.3.0').checks.Count -ne 17 -or (Dac-ReleaseSpec '1.0.0').cases.Count -ne 37){throw 'Future release weakened evidence contract'}
 Reject {Dac-ReleaseSpec '../1.0.0'} 'Unsupported release version'
 Reject {Dac-OutputSpec '../dac-0.2.0'} 'Unsupported release output'
+
+if((Dac-ReleaseSpec '0.2.1').checks.Count -ne 16 -or (Dac-ReleaseSpec '0.2.1').cases.Count -ne 34 -or (Dac-ReleaseSpec '1.1.0-beta.6').checks.Count -ne 16){throw 'Historical evidence contract changed'}
 Write-Output 'PASS version regression: monotonic bumps, malformed versions, stale diagnostics, missing changelog, tag mismatch, fixed future evidence gates'

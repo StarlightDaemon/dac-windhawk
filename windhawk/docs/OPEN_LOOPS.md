@@ -6,6 +6,21 @@ of any defects those checks reveal. Optional feature ideas are not missing relea
 requirements. This report covers the shipping Windhawk product; the older standalone
 OLED Aegis application is a separate codebase.
 
+## Native wake latency: software repair, field incident open
+
+DAC 0.3.0 preserves queued pointer position/time and dismisses the intended existing
+native presentation when the UI resumes, without another movement. Routine marker
+queries and shell maintenance now use a bounded joined worker; input immediately
+hides stale native windows. Historical keyboard focus remains deliberately unknown.
+See [native wake refinement](NATIVE_WAKE.md) for the implementation, timing evidence,
+source-compatible 0.2.1 negative control, diagnostics and concrete field checklist.
+
+The reported 5–15-second delay with multiple native protected displays remains an
+open physical incident. Automated hidden runs reproduce and repair missed queued
+input; they do not identify the actual desktop stall source or certify visible wake.
+The earlier independent-wake incident below likewise still needs the installed-source
+field retest. No automatic validation changes live preferences or operates DDC.
+
 ## Independent monitor wake
 
 The operator reported that moving the mouse on the primary display wakes other
@@ -30,8 +45,9 @@ it does not establish which path fired on the operator's physical desktop.
 
 For a normal independent setup, enable **Independent display input**, use inherited
 or pointer input scopes, and inspect profiles for shared overrides. Explicit shared
-mode still wakes all displays. Keyboard activity may credit both the cursor display
-and focused display; foreground-only scopes deliberately follow the focused window.
+mode still wakes all displays. Fresh keyboard activity may credit both the event pointer display
+and focused display; queued events older than 250 ms retain pointer attribution
+but cannot establish historical focus. Foreground-only scopes deliberately follow the focused window.
 If input cannot be attributed, Stop/wake and the emergency shortcut remain available.
 Spanning presentation and Windows session-wide power transitions remain global.
 
@@ -150,7 +166,7 @@ as intended. GitHub results remain tied to their exact commit in
 | Every release | Check version/changelog/tag agreement; inspect diff; require clean Git state; observe CI; verify published checksums/source; retain hardware qualifications separately |
 | Monthly and on upstream security releases | Review Windhawk stable/alpha changes, compiler and action pins, Windows changes, Fujin/parser fixture provenance and dependency notices; update pins only with validation |
 | After driver/monitor/saver changes | Repeat affected desktop/media/DDC cases; record exact equipment and withdraw obsolete compatibility claims |
-| After a field report | Reproduce against installed version/settings first; add a failing test where possible; publish a new patch rather than replace released assets |
+| After a field report | Reproduce against installed version/settings first; add a failing test where possible; publish a new MINOR batch rather than replace released assets |
 
 The older standalone application's audit findings and MSVC build gaps are not
 fixed by DAC. [Audit disposition](AUDIT_DISPOSITION.md) tracks that boundary;

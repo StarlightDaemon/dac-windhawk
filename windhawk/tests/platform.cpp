@@ -1,5 +1,14 @@
+#include "nativewake-input-fixture.h"
 #define DAC_HARNESS
 #include "../mods/dac-windhawk.wh.cpp"
+#undef GetRawInputData
+#undef GetMessageTime
+#undef GetMessagePos
+#undef GetCursorPos
+#undef MonitorFromPoint
+#undef GetForegroundWindow
+#undef IsWindowVisible
+#undef GetMessageW
 #include <cstdlib>
 #include <psapi.h>
 using namespace dac;
@@ -180,8 +189,9 @@ void Advanced() {
         Check(!trayPresent&&controller.blocked,"injected tray failure blocks controller");
         printf("ADVANCED initial session flags: locked=%d suspended=%d displayOff=%d; injecting awake session for tray recovery fixture\n",locked,suspended,displayOff);
         // Only the harness fixture is awake; the real desktop/session is untouched.
-        locked=suspended=displayOff=false;trayFailures=0;Tray();SetBlocked();return trayPresent&&!controller.blocked;
-    });OnUi(SetupSessions);OnUi(AdvancedUi);
+        locked=suspended=displayOff=false;trayFailures=0;Tray();return 1;
+    });Time trayDeadline=GetTickCount64()+2000;while(!trayPresent&&GetTickCount64()<trayDeadline)Sleep(10);
+    OnUi(+[]()->LRESULT{Check(trayPresent&&!controller.blocked,"asynchronous tray recovery unblocks");return 1;});OnUi(SetupSessions);OnUi(AdvancedUi);
     OnUi(SpanSession);Until([]{return snapshot.runs==1;},2000,"single desktop-spanning host");OnUi(VerifySpan);
     OnUi(DismissA);Until([]{return snapshot.runs==0;},2000,"span dismisses on activity anywhere");OnUi(RejectSpan);
     OnUi(ConfigurationFailure);Until([]{return snapshot.runs==0;},3000,"configuration failure cleaned");OnUi(VerifyConfigurationFailure);
@@ -399,6 +409,128 @@ void NextBeta(){IsolatedRenderScenes();ControllerAdapterTests();CloseHandle(stop
     OnUi(StartBatterySaver);Until([]{return snapshot.a==State::Saver;},2500,"battery fixture saver ready");OnUi(BatteryBlack);Until([]{return snapshot.jobs==0;},3000,"battery retires child behind black");OnUi(StopSessions);Until([]{return snapshot.runs==0;},2000,"battery stop");OnUi(StartRevocation);Until([]{return snapshot.powerPhase==1;},2000,"fake off accepted and reported on UI owner");Check(fakePowerOff==1,"fake off observed");OnUi(+[]()->LRESULT{SendMessageW(ui,WM_TIMER,1,0);Check(!controller.hardwareFaults.contains("A"),"healthy owned power ticket is not fault quarantine");controller.config.monitors["A"].hardware=false;Reconcile();return 1;});Until([]{return snapshot.powers==0;},3000,"terminal power outcome observed before task drain");Check(fakePowerOn==1,"grant revocation requests fake recovery wake");OnUi(HardwareDiagnostics);
     OnUi(StopSessions);Until([]{return snapshot.runs==0;},3000,"next beta final sessions stop");Shutdown();injectedObservations=false;Check(runs.empty()&&powerTasks.empty()&&ownedWindows.empty()&&ownedJobs.empty()&&!workspace&&!setupWindow,"next beta all owners released");puts("NEXTBETA PASS: production policy/native UI, schema2 migration and byte-exact rollback, recovery retention, rules/profiles/mapping, hidden DPI/topology, dim/scenes/preview, XInput injection, battery and fake permission-revocation wake, bounded redacted diagnostics. No real off/lock/OS-setting mutation.");}
 
+// These fixtures call the shipping dispatch/controller/native hide and joined
+// maintenance paths, with hidden HWNDs, synthetic events and fake tray/DDC only.
+int wakeScreens=3,wakeStyle=-1,wakeTarget=0;DWORD wakeAge=0;
+MSG wakeMessage{};HANDLE wakeBlockEntered{},wakeProcessed{};DWORD wakeBlockMs=0;
+Time measuredQueue=0,measuredHandler=0;std::map<std::string,Node> wakeBefore;
+LRESULT NativeSetup(){
+    Reset();Reconcile();Check(runs.empty(),"native setup drains previous sessions");
+    injectedObservations=true;controller=Controller{};controller.config.media=false;controller.config.perInput=true;controller.config.automatic=false;
+    displays.clear();std::vector<std::string> ids;auto now=GetTickCount64();
+    for(int i=0;i<wakeScreens;++i){auto id=std::to_string(i);ids.push_back(id);Display d{};d.id=id;d.identified=true;d.rect={-800+i*800,-200,i*800,400};displays.push_back(d);controller.config.monitors[id].saver=wakeStyle;}
+    controller.SelectPolicy(now-20000,0);controller.Topology(ids,now-20000);
+    for(auto& id:ids)controller.Manual(id,now-7000,false,wakeStyle);
+    Reconcile();Check(runs.size()==ids.size(),"native black/clock/constellation sessions created");
+    for(auto& run:runs)Check(!run->worker.joinable()&&!IsWindowVisible(run->window),"native fixtures hidden without saver workers");
+    wakeBefore=controller.nodes;InvalidateFaults();return 1;
+}
+void NativeDeliver(MSG message,Time now){RAWINPUT input{};input.header.dwType=RIM_TYPEMOUSE;input.data.mouse.lLastX=1;auto start=Micros();DeliverInput(input,message,now);measuredHandler=Micros()-start;measuredQueue=static_cast<DWORD>(now)-message.time;}
+void VerifyNativeWake(){
+    auto target=std::to_string(wakeTarget);Check(!Running(controller.nodes.at(target).state),"one queued movement wakes intended native display without a second packet");
+    for(auto& [id,before]:wakeBefore)if(id!=target){auto after=controller.nodes.at(id);Check(after.generation==before.generation&&after.last==before.last&&after.state==before.state,"untouched display preserves generation state and idle history");}
+    for(auto& run:runs)if(run->id==target)Check(run->cancel&&!IsWindowVisible(run->window),"wake-only reconcile hides target immediately");
+    Reconcile();Check(runs.size()==static_cast<size_t>(wakeScreens-1),"native target alone retired");
+}
+MSG NativeMessage(Time now,DWORD age){MSG message{};message.message=WM_INPUT;message.time=static_cast<DWORD>(now-age);message.pt={-400+wakeTarget*800,100};return message;}
+LRESULT NativeSample(){NativeSetup();auto now=GetTickCount64();NativeDeliver(NativeMessage(now,wakeAge),now);VerifyNativeWake();return 1;}
+LRESULT NativeBlock(){SetEvent(wakeBlockEntered);Sleep(wakeBlockMs);return 1;}
+LRESULT NativeQueued(){NativeDeliver(wakeMessage,GetTickCount64());VerifyNativeWake();SetEvent(wakeProcessed);return 1;}
+LRESULT NativeSemantics(){
+    Time at=0;DWORD age=0;Check(MessageTimeAt(0x100000020ULL,0xfffffff0u,at,age)&&at==0xfffffff0ULL&&age==48,"DWORD message timestamp wrap");
+    Check(!MessageTimeAt(1000,1001,at,age)&&!MessageTimeAt(1000,0x800003e8u,at,age),"future and half-range stamps rejected");
+    NativeSetup();auto now=GetTickCount64();RAWINPUT input{};input.header.dwType=RIM_TYPEMOUSE;auto message=NativeMessage(now,300);
+    auto topologySerial=controller.serial;controller.Topology({"replacement"},now-100);displays[0].id="replacement";controller.Manual("replacement",now-50,false,-1);DeliverInput(input,message,now);
+    Check(Running(controller.nodes.at("replacement").state)&&controller.serial>topologySerial,"pre-topology queued pointer cannot wake replacement output");
+    NativeSetup();now=GetTickCount64();message=NativeMessage(now,300);controller.Reset(now-100);controller.Manual("0",now-50,false,-1);DeliverInput(input,message,now);Check(Running(controller.nodes.at("0").state),"pre-reset event cannot wake new manual session");
+    NativeSetup();now=GetTickCount64();message=NativeMessage(now,300);controller.Manual("0",now-100,false,-1);DeliverInput(input,message,now);Check(Running(controller.nodes.at("0").state),"queued event before manual activation rejected");
+    NativeSetup();now=GetTickCount64();message=NativeMessage(now,300);controller.nodes["0"].manual=false;controller.nodes["0"].began=now-100;DeliverInput(input,message,now);Check(Running(controller.nodes.at("0").state),"queued event before automatic activation rejected");
+    NativeSetup();now=GetTickCount64();message=NativeMessage(now,300);topologyPending=true;DeliverInput(input,message,now);Check(controller.Any(),"pending topology rejects old coordinates");topologyPending=false;
+    NativeSetup();now=GetTickCount64();auto original=controller.nodes["1"];controller.config.monitors["1"].enabled=false;controller.Activity(now,true,"0",{"1"},true,now-300,false);Check(controller.nodes["1"].generation==original.generation,"disabled and delayed keyboard focus do not get credited");
+    for(int mode:{1,2,3}){NativeSetup();now=GetTickCount64();controller.config.monitors["1"].input=mode;controller.manualPreferences["1"].input=mode;
+        controller.Activity(now,true,"",{"1"},true,now-100,true);Check(Running(controller.nodes["1"].state)==(mode==2),"fresh keyboard known focus remains usable without pointer attribution");}
+    for(int mode:{1,2,3}){NativeSetup();now=GetTickCount64();controller.manualPreferences["1"].input=mode;controller.Activity(now,true,"0",{"1"},true,now-300,false);Check(Running(controller.nodes["1"].state),"delayed keyboard does not invent historical focus");}
+    NativeSetup();now=GetTickCount64();controller.manualPreferences["1"].input=0;controller.Activity(now,false,"0",{},true,now-300,false);Check(!Running(controller.nodes["0"].state)&&!Running(controller.nodes["1"].state)&&Running(controller.nodes["2"].state),"explicit shared override only wakes opted-in peer");
+    NativeSetup();now=GetTickCount64();controller.nodes["0"].sticky=true;NativeDeliver(NativeMessage(now,300),now);Check(Running(controller.nodes["0"].state),"sticky ignores valid queued activity");
+    NativeSetup();now=GetTickCount64();auto generation=controller.nodes["0"].generation;controller.config.timeout=61;controller.effectiveReady=false;controller.SelectPolicy(now,0);controller.Activity(now,false,"0",{},true,now-300,false);Check(!Running(controller.nodes["0"].state)&&controller.nodes["0"].generation!=generation,"policy refresh preserving manual session preserves queued wake");
+    NativeSetup();now=GetTickCount64();controller.nodes["@span"]={now-7000,++controller.serial,State::Black,true,now-7000};controller.Activity(now,false,"",{},false,now-300,false);Check(!Running(controller.nodes["@span"].state),"spanning accepts valid unknown activity");
+    for(USHORT flags:{USHORT(RI_MOUSE_LEFT_BUTTON_DOWN),USHORT(RI_MOUSE_LEFT_BUTTON_UP),USHORT(RI_MOUSE_WHEEL),USHORT(0)}){NativeSetup();now=GetTickCount64();input.data.mouse.usButtonFlags=flags;input.data.mouse.lLastX=flags?0:1;DeliverInput(input,NativeMessage(now,300),now);VerifyNativeWake();}
+    // Crossing: the first event's point is A while the next queued event belongs
+    // to B. No current-cursor query is available to rewrite either observation.
+    NativeSetup();now=GetTickCount64();wakeTarget=0;NativeDeliver(NativeMessage(now,1500),now);Check(Running(controller.nodes["1"].state),"queued crossing first targets negative-coordinate A");wakeTarget=1;NativeDeliver(NativeMessage(now,300),now);Check(!Running(controller.nodes["1"].state)&&Running(controller.nodes["2"].state),"queued crossing second targets B only");wakeTarget=0;
+    NativeSetup();now=GetTickCount64();message=NativeMessage(now,300);message.pt={50000,-50000};displays[0].rect={49000,-51000,51000,-49000};NativeDeliver(message,now);VerifyNativeWake();
+    NativeSetup();now=GetTickCount64();message=NativeMessage(now,300);message.pt={90000,90000};NativeDeliver(message,now);for(auto& [id,before]:wakeBefore)Check(controller.nodes[id].generation==before.generation,"unknown pointer never wakes every independent output");
+    Reset();Reconcile();return 1;
+}
+void NativeRaw(bool fallback=false){
+    wake_fixture::enabled=true;wake_fixture::packet={};wake_fixture::packet.header.dwType=RIM_TYPEMOUSE;wake_fixture::packet.data.mouse.lLastX=1;
+    wake_fixture::message=NativeMessage(GetTickCount64(),300);wake_fixture::message.lParam=1;
+    dispatchedMessage=fallback?MSG{}:wake_fixture::message;injectedObservations=false;Input(reinterpret_cast<HRAWINPUT>(1));injectedObservations=true;dispatchedMessage={};wake_fixture::enabled=false;
+}
+LRESULT NativeRawTests(){
+    NativeSetup();NativeRaw();VerifyNativeWake();NativeSetup();NativeRaw(true);VerifyNativeWake();
+    NativeSetup();auto now=GetTickCount64();wake_fixture::enabled=true;wake_fixture::readFailure=true;wake_fixture::message=NativeMessage(now,300);wake_fixture::message.lParam=1;dispatchedMessage=wake_fixture::message;controller.manualPreferences["1"].input=0;injectedObservations=false;Input(reinterpret_cast<HRAWINPUT>(1));injectedObservations=true;
+    Check(Running(controller.nodes["0"].state)&&!Running(controller.nodes["1"].state)&&Running(controller.nodes["2"].state),"raw read failure preserves only explicit shared wake");
+    controller.Manual("1",now-100,false,-1);injectedObservations=false;Input(reinterpret_cast<HRAWINPUT>(1));injectedObservations=true;Check(Running(controller.nodes["1"].state),"raw failure cannot bypass manual activation timestamp");
+    wake_fixture::enabled=false;wake_fixture::readFailure=false;dispatchedMessage={};
+    NativeSetup();now=GetTickCount64();auto original=controller.nodes["1"];controller.config.monitors["1"].enabled=false;controller.Activity(now,false,"1",{},true,now-100,true);Check(controller.nodes["1"].generation==original.generation&&controller.nodes["1"].last==original.last,"fresh targeted input respects disabled output");
+    NativeSetup();now=GetTickCount64();wake_fixture::enabled=true;wake_fixture::message=NativeMessage(now,300);wake_fixture::message.time=static_cast<DWORD>(controller.inputBoundary);wake_fixture::packet.header.dwType=RIM_TYPEMOUSE;injectedObservations=false;Input(reinterpret_cast<HRAWINPUT>(1));injectedObservations=true;wake_fixture::enabled=false;Check(controller.nodes["0"].generation==wakeBefore["0"].generation,"same-ms topology boundary is ambiguous and rejected");
+    for(DWORD delay:{0u,300u}){NativeSetup();wake_fixture::focus=CreateWindowExW(WS_EX_TOOLWINDOW,kClass,L"",WS_POPUP,0,-200,800,600,nullptr,nullptr,GetModuleHandleW(nullptr),nullptr);Check(wake_fixture::focus,"hidden synthetic focus window");wake_fixture::enabled=true;wake_fixture::packet.header.dwType=RIM_TYPEKEYBOARD;wake_fixture::message=NativeMessage(GetTickCount64(),delay);dispatchedMessage={};injectedObservations=false;Input(reinterpret_cast<HRAWINPUT>(1));injectedObservations=true;wake_fixture::enabled=false;
+        Check(!Running(controller.nodes["0"].state)&&Running(controller.nodes["1"].state)==(delay>250)&&Running(controller.nodes["2"].state),"raw keyboard distinguishes fresh focus from aged focus");DestroyWindow(wake_fixture::focus);wake_fixture::focus=nullptr;}
+    NativeSetup();wake_fixture::focus=CreateWindowExW(WS_EX_TOOLWINDOW,kClass,L"",WS_POPUP,0,-200,800,600,nullptr,nullptr,GetModuleHandleW(nullptr),nullptr);Check(wake_fixture::focus,"focus without pointer fixture");wake_fixture::enabled=true;wake_fixture::packet.header.dwType=RIM_TYPEKEYBOARD;wake_fixture::message=NativeMessage(GetTickCount64(),0);wake_fixture::message.pt={90000,90000};dispatchedMessage={};injectedObservations=false;Input(reinterpret_cast<HRAWINPUT>(1));injectedObservations=true;wake_fixture::enabled=false;
+    Check(controller.nodes["0"].generation==wakeBefore["0"].generation&&!Running(controller.nodes["1"].state)&&controller.nodes["2"].generation==wakeBefore["2"].generation,"actual fresh raw keyboard credits known focus with no pointer attribution");DestroyWindow(wake_fixture::focus);wake_fixture::focus=nullptr;
+    Reset();Reconcile();return 1;
+}
+LRESULT PreparePostedRaw(){NativeSetup();wake_fixture::packet={};wake_fixture::packet.header.dwType=RIM_TYPEMOUSE;wake_fixture::packet.data.mouse.lLastX=1;wake_fixture::message=NativeMessage(GetTickCount64(),300);wake_fixture::message.pt={50000,-50000};displays[0].rect={49000,-51000,51000,-49000};wake_fixture::enabled=true;wake_fixture::overrideQueue=true;injectedObservations=false;return 1;}
+LRESULT VerifyPostedRaw(){injectedObservations=true;wake_fixture::enabled=false;wake_fixture::overrideQueue=false;VerifyNativeWake();return 1;}
+void WaitMaintenance(bool tray=false){Time deadline=GetTickCount64()+4000;while(GetTickCount64()<deadline){bool busy=tray?maintenanceInTray.load():maintenanceInFile.load();if(busy)return;Sleep(1);}Check(false,"maintenance worker entered injected stall");}
+LRESULT NativeMaintain(){Maintain(GetTickCount64());return 1;}
+LRESULT NativeResourceInput(){
+    NativeSetup();auto now=GetTickCount64();auto message=NativeMessage(now,0);DWORD before=0,after=0;GetProcessHandleCount(GetCurrentProcess(),&before);auto gdi=GetGuiResources(GetCurrentProcess(),GR_GDIOBJECTS);auto count=diagnosticEvents.size();
+    for(int i=0;i<50000;++i)NativeDeliver(message,now);
+    GetProcessHandleCount(GetCurrentProcess(),&after);Check(after<=before&&GetGuiResources(GetCurrentProcess(),GR_GDIOBJECTS)<=gdi&&diagnosticEvents.size()==count,"50000 packets retain no handles GDI or diagnostic packets");
+    {std::lock_guard lock(maintenanceLock);Check(maintenancePending.paths.size()<=32&&maintenancePending.resets.size()<=32,"maintenance pending slots bounded");}
+    auto report=DiagnosticText();Check(report.size()<24000&&report.find("sessionTopologyBoundary=")!=std::string::npos&&report.find("Wake timing maxima")!=std::string::npos&&report.find("C:\\")==std::string::npos,"bounded redacted aggregate diagnostics");Reset();Reconcile();return 1;
+}
+void NativeWake(){
+    CloseHandle(stopEvent);stopEvent=nullptr;Check(Initialize(),"native wake initialize");OnUi(+[]()->LRESULT{KillTimer(ui,1);injectedObservations=true;locked=suspended=displayOff=false;return 1;});
+    Time maximum=0;int samples=0;
+    for(int style:{-1,8,9})for(int count:{1,2,3})for(int target=0;target<count;++target)for(DWORD delay:{0u,300u,1500u,5000u}){wakeStyle=style;wakeScreens=count;wakeTarget=target;wakeAge=delay;OnUi(NativeSample);maximum=std::max(maximum,measuredHandler);++samples;}
+    printf("NATIVEWAKE matrix: %d hidden samples black/clock/constellation, 1/2/3 displays, every target, 0/300/1500/5000 ms queue age; handler max=%llu us; visible rendering unmeasured\n",samples,maximum);
+    wakeScreens=3;wakeTarget=0;wakeStyle=-1;OnUi(NativeSemantics);OnUi(NativeRawTests);OnUi(PreparePostedRaw);PostMessageW(ui,WM_INPUT,RIM_INPUTSINK,1);
+    // Sent messages can overtake posted messages; wait for the UI callback posted after WM_INPUT.
+    wakeProcessed=CreateEventW(nullptr,TRUE,FALSE,nullptr);PostMessageW(ui,WM_APP+101,0,reinterpret_cast<LPARAM>(+[]()->LRESULT{VerifyPostedRaw();SetEvent(wakeProcessed);return 1;}));Check(WaitForSingleObject(wakeProcessed,2000)==WAIT_OBJECT_0,"actual UI message loop captures full queued MSG point");CloseHandle(wakeProcessed);
+    wakeBlockEntered=CreateEventW(nullptr,TRUE,FALSE,nullptr);wakeProcessed=CreateEventW(nullptr,TRUE,FALSE,nullptr);
+    for(int style:{-1,8,9})for(DWORD delay:{300u,1500u,5000u}){wakeStyle=style;wakeBlockMs=delay;OnUi(NativeSetup);ResetEvent(wakeBlockEntered);ResetEvent(wakeProcessed);PostMessageW(ui,WM_APP+101,0,reinterpret_cast<LPARAM>(NativeBlock));Check(WaitForSingleObject(wakeBlockEntered,1000)==WAIT_OBJECT_0,"UI stall entered");wakeMessage=NativeMessage(GetTickCount64(),0);PostMessageW(ui,WM_APP+101,0,reinterpret_cast<LPARAM>(NativeQueued));Check(WaitForSingleObject(wakeProcessed,delay+2000)==WAIT_OBJECT_0,"one posted movement wakes after UI resumes");printf("NATIVEWAKE blocked UI style=%d injected=%lu queue=%llu ms resume-handler=%llu us; no second movement\n",style,delay,measuredQueue,measuredHandler);}
+    CloseHandle(wakeBlockEntered);CloseHandle(wakeProcessed);
+    maintenanceFileDelay=1500;OnUi(+[]()->LRESULT{NativeSetup();InvalidateFaults();Maintain(GetTickCount64());return 1;});WaitMaintenance();
+    OnUi(+[]()->LRESULT{auto before=Micros();WindowProc(ui,WM_TIMER,1,0);Check(Micros()-before<1000000,"actual timer remains responsive during 1500-ms file stall");return 1;});OnUi(NativeSample);Check(measuredHandler<1000000,"slow maintenance does not serialize unrelated input");printf("NATIVEWAKE 1500-ms background file stall: independent handler=%llu us\n",measuredHandler);
+    // Invalidate/reset during an old scan; reservation blocks power until actual
+    // deletion completes, even though its stale result cannot alter the cache.
+    OnUi(+[]()->LRESULT{DWORD error=0;Check(WriteFileText(PowerMarker("0"),"fixture",error),"fault fixture");RequestFaultReset("0");Check(FaultResetPending("0"),"reset reserves power target");controller.config.monitors["0"].hardware=true;Check(StartPower(displays[0],controller.nodes["0"].generation)==-1,"reset defers new power ticket without consuming attempt");InvalidateFaults();Maintain(GetTickCount64());return 1;});maintenanceFileDelay=0;
+    Time deadline=GetTickCount64()+4000;while(GetTickCount64()<deadline){OnUi(NativeMaintain);bool pending=false;OnUi(+[]()->LRESULT{return 1;});{std::lock_guard lock(maintenanceLock);pending=maintenancePending.faultEpoch||!maintenancePending.resets.empty()||maintenanceResultReady;}if(!maintenanceInFile&&!pending)break;Sleep(10);}
+    OnUi(+[]()->LRESULT{Maintain(GetTickCount64());Check(!FaultResetPending("0")&&!PowerPending("0"),"fault reset completes and deletes fixture");Check(wakeTiming.staleResults>0,"stale fault completion rejected");return 1;});
+    auto failures=wakeTiming.fileFailures.load();maintenanceFileFail=true;OnUi(+[]()->LRESULT{InvalidateFaults();Maintain(GetTickCount64());return 1;});
+    deadline=GetTickCount64()+4000;while(wakeTiming.fileFailures==failures&&GetTickCount64()<deadline){OnUi(NativeMaintain);Sleep(5);}
+    OnUi(+[]()->LRESULT{Maintain(GetTickCount64());Check(CachedFault("0")&&wakeTiming.fileFailures>0,"failed refresh cannot clear quarantine");return 1;});maintenanceFileFail=false;
+    maintenanceTrayDelay=1200;trayFailures=1;OnUi(+[]()->LRESULT{trayPresent=false;requestedTray=-1;nextTray=0;Maintain(GetTickCount64());return 1;});WaitMaintenance(true);
+    for(int i=0;i<15;++i){OnUi(NativeMaintain);Sleep(100);}maintenanceTrayDelay=0;trayFailures=0;
+    deadline=GetTickCount64()+4000;while(GetTickCount64()<deadline){OnUi(NativeMaintain);bool readyTray=false;DWORD_PTR value=0;SendMessageTimeoutW(ui,WM_APP+101,0,reinterpret_cast<LPARAM>(+[]()->LRESULT{return trayPresent?2:1;}),SMTO_ABORTIFHUNG,2000,&value);readyTray=value==2;if(readyTray)break;Sleep(20);}
+    OnUi(+[]()->LRESULT{Check(trayPresent,"slow/failing tray converges through controlled retry");auto calls=wakeTiming.trayCalls.load();for(int i=0;i<100;++i)Maintain(GetTickCount64());Check(wakeTiming.trayCalls==calls,"unchanged tray does not repeatedly call shell");return 1;});
+    // A successful add can finish after Explorer loss/new desired state. Reject
+    // that response and converge from the worker's actual shell state.
+    maintenanceTrayDelay=250;auto staleBefore=wakeTiming.staleResults.load();
+    OnUi(+[]()->LRESULT{Tray();return 1;});WaitMaintenance(true);
+    OnUi(+[]()->LRESULT{WindowProc(ui,taskbar,0,0);Check(!trayPresent&&controller.blocked,"Explorer loss blocks immediately");Maintain(GetTickCount64());return 1;});
+    Sleep(300);maintenanceTrayDelay=0;OnUi(+[]()->LRESULT{Maintain(GetTickCount64());Check(!trayPresent,"stale successful tray result cannot unblock");return 1;});
+    deadline=GetTickCount64()+4000;while(GetTickCount64()<deadline){OnUi(NativeMaintain);DWORD_PTR value=0;SendMessageTimeoutW(ui,WM_APP+101,0,reinterpret_cast<LPARAM>(+[]()->LRESULT{return trayPresent?2:1;}),SMTO_ABORTIFHUNG,2000,&value);if(value==2)break;Sleep(10);}
+    OnUi(+[]()->LRESULT{Check(trayPresent&&!controller.blocked,"latest tray request recovers after stale success");return 1;});Check(wakeTiming.staleResults>staleBefore,"stale successful tray completion counted");
+    OnUi(NativeResourceInput);maintenanceFileDelay=250;OnUi(+[]()->LRESULT{InvalidateFaults();Maintain(GetTickCount64());return 1;});WaitMaintenance();auto shutdown=GetTickCount64();Shutdown();maintenanceFileDelay=0;
+    Check(!maintenanceWorker.joinable()&&!ui&&runs.empty()&&resettingFaults.empty(),"pending maintenance joined before windows and DLL resources released");
+    printf("NATIVEWAKE shutdown joined pending worker in %llu ms; queueMax=%llu ms fileMax=%llu us trayMax=%llu us; fixed counters only\n",GetTickCount64()-shutdown,wakeTiming.queueMaxMs.load(),wakeTiming.fileMaxUs.load(),wakeTiming.trayMaxUs.load());
+    puts("NATIVEWAKE PASS: queued attribution, crossings, signed coordinates, timestamp wrap, generation barriers, keyboard scopes, sticky/span/disabled, clicks/wheel/held motion, slow/failing/stale maintenance, reset reservation, tray recovery, bounded input and joined shutdown. Hidden tests; no physical timing qualification.");
+}
+
 int wmain(int argc,wchar_t** argv) {
     if(argc==5&&wcscmp(argv[1],L"--power-helper")==0) {
         if(wcscmp(argv[4],L"2")==0)return 0; // models missing mod injection, not a successful hardware cycle
@@ -422,6 +554,7 @@ int wmain(int argc,wchar_t** argv) {
         CloseHandle(pi.hThread);CloseHandle(pi.hProcess);Sleep(INFINITE);return 0;
     }
     stopEvent=CreateEventW(nullptr,TRUE,FALSE,nullptr);Check(stopEvent,"stop event");
+    if(argc>1&&wcscmp(argv[1],L"--nativewake")==0){NativeWake();return 0;}
     if(argc>1&&wcscmp(argv[1],L"--nextbeta")==0){NextBeta();return 0;}
     if(argc>1&&wcscmp(argv[1],L"--advanced")==0){Advanced();return 0;}
     if(argc>1&&wcscmp(argv[1],L"--power")==0){PowerTests();CloseHandle(stopEvent);return 0;}

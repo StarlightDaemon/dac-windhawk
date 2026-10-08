@@ -4,6 +4,26 @@ This records the Windhawk edition. Earlier version labels were internal
 development labels; they are retained for evidence lookup. They do not establish
 a completed 1.0 release. No historical tag or published release is fabricated.
 
+## 0.3.0 — 2026-10-07 — queued native wake and asynchronous maintenance
+
+- Preserve event-time pointer position and wrap-safe timestamps so a single queued
+  movement wakes its intended existing native session after UI processing resumes.
+- Separate historical pointer attribution from fresh-only keyboard/foreground
+  focus; retain independent, explicit shared, sticky and spanning behavior.
+- Hide/cancel stale native presentations directly on wake. Move routine fault-file
+  and tray work to a joined worker with bounded snapshots, epoch validation,
+  conservative query failures and reset reservations.
+- Add bounded redacted queue/heartbeat/handler/reconciliation/timer/file/tray
+  diagnostics, rejection counts and distinct pending/failed/retained fault states.
+- Add the nativewake regression group and source-compatible v0.2.1 negative
+  control; strengthen the current evidence contract to 17 groups and 37 rejection
+  cases while preserving historical package requirements.
+- Advance MINOR for substantive development batches and update release guidance.
+
+No configuration reset, live install or physical test is part of this delivery.
+Hidden timings do not establish visible rendering or the physical resolution of
+reported 5–15-second delays. See [native wake evidence and field retest](docs/NATIVE_WAKE.md).
+
 ## 0.2.1 — 2026-10-07 — independent wake and compatibility checks
 
 - Stop unattributed fallback and delayed input from waking unrelated displays

@@ -39,7 +39,10 @@ while another shows black, a moving scene, photos or an installed screensaver.
 
 Mouse activity wakes its display; keyboard activity also credits the focused
 display. In independent mode, unattributed or delayed input does not wake unrelated
-displays; focus changes alone do not count as input. Application/media
+displays; focus changes alone do not count as input. Queued mouse movements use
+their event-time position, so one movement can dismiss its target when the UI
+resumes. Delayed keyboard events cannot reconstruct earlier foreground focus.
+See [native wake diagnostics and field retest](windhawk/docs/NATIVE_WAKE.md). Application/media
 attribution is heuristic; advanced overrides and profiles can change the policy.
 
 ## Install and get started
