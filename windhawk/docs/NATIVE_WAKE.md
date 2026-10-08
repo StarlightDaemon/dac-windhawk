@@ -115,7 +115,11 @@ The ARM64 mod and both harnesses passed compile/link/PE checks without execution
 Release evidence and hosted Actions results remain bound to their exact source
 and commit. ARM64 execution and Windhawk 2.0 alpha qualification remain separate.
 
-## Operator field retest (still open)
+## Remaining operator field matrix
+
+The [operator qualification record](OPERATOR_QUALIFICATION.md) contains the
+positive physical Constellation retest. The checklist below covers the remaining
+expanded matrix; installation and every listed case are not newly presumed absent.
 
 1. Save a redacted export from the existing incident/version if available. Disable
    older renamed controller instances, then replace the complete installed source
@@ -136,4 +140,5 @@ and commit. ARM64 execution and Windhawk 2.0 alpha qualification remain separate
    heartbeat/file/tray maxima. Do not induce hardware power or OS lock for this test.
 5. Preserve the incident if delay recurs. The software tests establish the queued
    input loss mechanism and its repair; they do **not** identify the operator's
-   actual 5–15-second desktop stall source or prove its physical resolution.
+   actual 5–15-second desktop stall source. Physical observations are recorded
+   separately in the qualification record; the full matrix remains pending.

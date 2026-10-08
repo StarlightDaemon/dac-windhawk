@@ -108,7 +108,7 @@ physical power button. See [security and trust boundaries](SECURITY.md).
 | Configure everyday behavior | [Controls and usage](windhawk/README.md) |
 | See changes and release numbering | [Changelog](windhawk/CHANGELOG.md) · [Release guide](windhawk/docs/RELEASING.md) |
 | Build or contribute | [Contributor guide](CONTRIBUTING.md) |
-| Assess readiness and known limits | [Open loops](windhawk/docs/OPEN_LOOPS.md) · [Adversarial review](windhawk/docs/ADVERSARIAL_REVIEW.md) · [Compatibility](windhawk/docs/COMPATIBILITY.md) |
+| Assess readiness and known limits | [Operator qualification & next steps](windhawk/docs/OPERATOR_QUALIFICATION.md) · [Open loops](windhawk/docs/OPEN_LOOPS.md) · [Adversarial review](windhawk/docs/ADVERSARIAL_REVIEW.md) · [Compatibility](windhawk/docs/COMPATIBILITY.md) |
 | Understand source/dependency history | [Provenance](windhawk/docs/PROVENANCE.md) · [Notices](windhawk/docs/THIRD_PARTY_NOTICES.md) |
 | Report a problem | [Issues](https://github.com/StarlightDaemon/dac-windhawk/issues) · [Security reporting](SECURITY.md) |
 

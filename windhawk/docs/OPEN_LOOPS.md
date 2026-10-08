@@ -6,6 +6,10 @@ of any defects those checks reveal. Optional feature ideas are not missing relea
 requirements. This report covers the shipping Windhawk product; the older standalone
 OLED Aegis application is a separate codebase.
 
+The [operator qualification record](OPERATOR_QUALIFICATION.md) now owns the
+physical Constellation retest and recommended next-step sequence. Keep successful
+observations, untested cases and remaining support gates distinct.
+
 ## Native wake latency: software repair, field incident open
 
 DAC 0.3.0 preserves queued pointer position/time and dismisses the intended existing
@@ -15,11 +19,11 @@ hides stale native windows. Historical keyboard focus remains deliberately unkno
 See [native wake refinement](NATIVE_WAKE.md) for the implementation, timing evidence,
 source-compatible 0.2.1 negative control, diagnostics and concrete field checklist.
 
-The reported 5–15-second delay with multiple native protected displays remains an
-open physical incident. Automated hidden runs reproduce and repair missed queued
-input; they do not identify the actual desktop stall source or certify visible wake.
-The earlier independent-wake incident below likewise still needs the installed-source
-field retest. No automatic validation changes live preferences or operates DDC.
+The operator qualification record contains a positive Constellation field retest:
+the earlier delay and unexpected independent wake-all did not recur in the tested
+run. The expanded native-style/input/timing matrix remains pending. Automated
+hidden runs establish the queued-input repair; they do not identify the original
+desktop stall source. No automatic validation changes live preferences or operates DDC.
 
 ## Independent monitor wake
 
@@ -51,7 +55,7 @@ but cannot establish historical focus. Foreground-only scopes deliberately follo
 If input cannot be attributed, Stop/wake and the emergency shortcut remain available.
 Spanning presentation and Windows session-wide power transitions remain global.
 
-**Close the physical incident only after updating the installed source and testing:**
+**Complete the remaining field matrix against the installed source:**
 disable older renamed controllers; replace the complete source using the release
 instructions; idle three displays; move the pointer inside each in turn; verify
 only that display wakes and the other two retain their countdown/session. Repeat
@@ -107,9 +111,9 @@ maintenance or extensions; they can remain deferred with explicit scope.
 
 | ID | Priority and owner | Next action and closure evidence |
 | --- | --- | --- |
-| DAC-R01 | P1, maintainer + desktop operator | Install the repaired source and complete the independent-wake matrix above. Record versions, input scopes, monitor topology and observed untouched sessions; code regression alone does not close the field report. |
-| DAC-R02 | P1, maintainer | Run actual Windhawk enable/disable, Settings callback, reload, tool startup, emergency exit, host crash and unload. Prove one controller, correct helper dispatch and no stranded owned children. Harness compilation excludes the real host entry adapter from execution. |
-| DAC-R03 | P1, desktop operator | Qualify three-monitor layouts, negative coordinates, mixed DPI, small work areas, docking, HDR, high contrast and screen reader use. Exercise real stock/custom savers; keep per-saver support labels unqualified until observed. |
+| DAC-R01 | P1, maintainer + desktop operator | Positive Constellation field observations are recorded in OPERATOR_QUALIFICATION. Complete the remaining style/input matrix and record exact topology/scopes and measured latency; retain untouched sessions. |
+| DAC-R02 | P1, maintainer | Enable, settings and visible disable have positive operator observations. Qualify reload/re-enable/restart, exact Settings callbacks, tool startup, emergency exit, host crash and full unload; prove one controller and no stranded children. Duplicate/orphan behavior is untested, with no failure reported. |
+| DAC-R03 | P1, desktop operator | Constellation layout and scaling usability were observed. Qualify negative coordinates, mixed-DPI transitions, small work areas, docking, HDR, high contrast and screen reader use. Real stock/custom saver support remains unqualified. |
 | DAC-R04 | P1, desktop operator | Test browser/audio sources, muted/quiet media, games/fullscreen, XInput, app/profile transitions, suspend/resume, lock/unlock and Windows display power. Record where heuristics inhibit more than one monitor. |
 | DAC-R05 | P1 for hardware support, operator with recovery access | Test explicit DDC off/wake on named monitor/adapter/driver combinations, cancellation, host death and failure recovery. Keep experimental label and physical-button recovery until qualified. |
 | DAC-R06 | P1 decision, maintainer | Measure blocked file/photo decode, audio enumeration and driver paths during shutdown. Decide whether v1 requires a strict unload bound. If so, move blocking work to disposable helpers and verify timeout cleanup; otherwise document the residual limitation. |
