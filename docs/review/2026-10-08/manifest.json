@@ -1,0 +1,462 @@
+{
+  "schema": 1,
+  "kind": "historical-review-patches",
+  "destination": "StarlightDaemon/dac-windhawk",
+  "sourceBaseline": "edaef74233b75708ea4354e3e15793f195567e34",
+  "sourceHead": "28194b742b0fb72101e99a142191378f0365e618",
+  "changedPathCount": 97,
+  "patches": [
+    {
+      "file": "0001-chore-install-RAIDEN-Instance-Edict-v2.1.0.patch",
+      "sourceCommit": "137061985a186db47a0a7a99e07899b7bcbff417",
+      "sha256": "4faa99e15d0a908204b0d4f28fd5663f555fd58f87675bcac09428b8b66cdc26",
+      "bytes": 81938,
+      "files": [
+        {
+          "path": ".gitattributes",
+          "line": 52
+        },
+        {
+          "path": ".gitignore",
+          "line": 60
+        },
+        {
+          "path": ".raiden/README.md",
+          "line": 77
+        },
+        {
+          "path": ".raiden/instance/baseline.json",
+          "line": 90
+        },
+        {
+          "path": ".raiden/instance/metadata.json",
+          "line": 132
+        },
+        {
+          "path": ".raiden/local/README.md",
+          "line": 153
+        },
+        {
+          "path": ".raiden/local/ROUTING.md",
+          "line": 168
+        },
+        {
+          "path": ".raiden/local/prompts/instance-session-startup.md",
+          "line": 189
+        },
+        {
+          "path": ".raiden/local/rules/DEVELOPMENT.md",
+          "line": 271
+        },
+        {
+          "path": ".raiden/local/rules/NATIVE_LOADING.md",
+          "line": 291
+        },
+        {
+          "path": ".raiden/state/CURRENT_STATE.md",
+          "line": 319
+        },
+        {
+          "path": ".raiden/state/DECISIONS.md",
+          "line": 337
+        },
+        {
+          "path": ".raiden/state/OPEN_LOOPS.md",
+          "line": 365
+        },
+        {
+          "path": ".raiden/state/README.md",
+          "line": 414
+        },
+        {
+          "path": ".raiden/state/WORK_LOG.md",
+          "line": 431
+        },
+        {
+          "path": ".raiden/writ/AGENTS.md",
+          "line": 474
+        },
+        {
+          "path": ".raiden/writ/FORK_REVIEW_PROTOCOL.md",
+          "line": 722
+        },
+        {
+          "path": ".raiden/writ/OPERATING_RULES.md",
+          "line": 1016
+        },
+        {
+          "path": ".raiden/writ/README.md",
+          "line": 1167
+        },
+        {
+          "path": ".raiden/writ/ROUTING_POLICY.md",
+          "line": 1206
+        },
+        {
+          "path": ".raiden/writ/WORKSPACE_AUDIT_PROTOCOL.md",
+          "line": 1273
+        },
+        {
+          "path": "AGENTS.md",
+          "line": 1520
+        }
+      ]
+    },
+    {
+      "file": "0002-docs-prepare-independent-Astra-security-review-hando.patch",
+      "sourceCommit": "9581aa1ea9e297c1c8e0b1f113c84ab215611ce1",
+      "sha256": "06167ec2b7504604628968e06ff068d36e2f1050a9b841068b10089ae4babd36",
+      "bytes": 25012,
+      "files": [
+        {
+          "path": ".raiden/local/README.md",
+          "line": 17
+        },
+        {
+          "path": ".raiden/local/context/third-party-review-baseline.json",
+          "line": 32
+        },
+        {
+          "path": ".raiden/local/prompts/astra-security-review-handoff.md",
+          "line": 176
+        },
+        {
+          "path": ".raiden/state/CURRENT_STATE.md",
+          "line": 399
+        },
+        {
+          "path": ".raiden/state/OPEN_LOOPS.md",
+          "line": 415
+        },
+        {
+          "path": ".raiden/state/WORK_LOG.md",
+          "line": 438
+        }
+      ]
+    },
+    {
+      "file": "0003-docs-checkpoint-Windhawk-development-and-DAC-qualifi.patch",
+      "sourceCommit": "28194b742b0fb72101e99a142191378f0365e618",
+      "sha256": "26195a20a509aac02e1345c509e8d8cbeeaad370a618493cae86a7ab37340e66",
+      "bytes": 1096361,
+      "files": [
+        {
+          "path": ".raiden/local/README.md",
+          "line": 162
+        },
+        {
+          "path": ".raiden/local/plans/DAC_NEXT_STEPS.md",
+          "line": 200
+        },
+        {
+          "path": ".raiden/local/plans/WINDHAWK_BETA_1.md",
+          "line": 234
+        },
+        {
+          "path": ".raiden/local/plans/WINDHAWK_NEXT_BETA.md",
+          "line": 272
+        },
+        {
+          "path": ".raiden/local/plans/WINDHAWK_PRODUCTION_V1.md",
+          "line": 458
+        },
+        {
+          "path": ".raiden/local/plans/WINDHAWK_V1.md",
+          "line": 506
+        },
+        {
+          "path": ".raiden/local/prompts/dac-native-wake-0.3.0-handoff.md",
+          "line": 713
+        },
+        {
+          "path": ".raiden/local/prompts/windhawk-next-beta-astra-handoff.md",
+          "line": 883
+        },
+        {
+          "path": ".raiden/local/prompts/windhawk-v1-implementation-handoff.md",
+          "line": 1413
+        },
+        {
+          "path": ".raiden/local/prompts/windhawk-v1-production-handoff.md",
+          "line": 1508
+        },
+        {
+          "path": ".raiden/local/reports/DAC_ARM64_FEASIBILITY.md",
+          "line": 1587
+        },
+        {
+          "path": ".raiden/local/reports/DAC_NATIVE_WAKE_INVESTIGATION.md",
+          "line": 1680
+        },
+        {
+          "path": ".raiden/local/rules/DEVELOPMENT.md",
+          "line": 1831
+        },
+        {
+          "path": ".raiden/local/tools/Collect-RemoteSaveDiagnostics.ps1",
+          "line": 1885
+        },
+        {
+          "path": ".raiden/local/tools/compare_sources.py",
+          "line": 1961
+        },
+        {
+          "path": ".raiden/state/CURRENT_STATE.md",
+          "line": 2140
+        },
+        {
+          "path": ".raiden/state/DECISIONS.md",
+          "line": 2521
+        },
+        {
+          "path": ".raiden/state/OPEN_LOOPS.md",
+          "line": 2861
+        },
+        {
+          "path": ".raiden/state/WORK_LOG.md",
+          "line": 3279
+        },
+        {
+          "path": "windhawk/CHANGELOG.md",
+          "line": 4680
+        },
+        {
+          "path": "windhawk/LICENSE-STATUS.md",
+          "line": 4762
+        },
+        {
+          "path": "windhawk/LICENSE.md",
+          "line": 4783
+        },
+        {
+          "path": "windhawk/PROTOTYPE.md",
+          "line": 4810
+        },
+        {
+          "path": "windhawk/README.md",
+          "line": 4864
+        },
+        {
+          "path": "windhawk/docs/ACCEPTANCE.md",
+          "line": 5068
+        },
+        {
+          "path": "windhawk/docs/AUDIT_DISPOSITION.md",
+          "line": 5171
+        },
+        {
+          "path": "windhawk/docs/BETA_1_RELEASE_NOTES.md",
+          "line": 5219
+        },
+        {
+          "path": "windhawk/docs/BETA_1_REPORT.md",
+          "line": 5277
+        },
+        {
+          "path": "windhawk/docs/BETA_2_HOST_FIX.md",
+          "line": 5419
+        },
+        {
+          "path": "windhawk/docs/COMPATIBILITY.md",
+          "line": 5475
+        },
+        {
+          "path": "windhawk/docs/DAC_IDENTITY.md",
+          "line": 5557
+        },
+        {
+          "path": "windhawk/docs/DPI_FIX_RC2.md",
+          "line": 5670
+        },
+        {
+          "path": "windhawk/docs/FEATURE_OPPORTUNITIES.md",
+          "line": 5736
+        },
+        {
+          "path": "windhawk/docs/FIXTURE_PROVENANCE.md",
+          "line": 6037
+        },
+        {
+          "path": "windhawk/docs/FUJIN_RC3.md",
+          "line": 6083
+        },
+        {
+          "path": "windhawk/docs/IDLE_DEFAULT_BETA6.md",
+          "line": 6184
+        },
+        {
+          "path": "windhawk/docs/LIMINAL_RC4.md",
+          "line": 6247
+        },
+        {
+          "path": "windhawk/docs/LIMINAL_SCREEN_COMPARISON.md",
+          "line": 6375
+        },
+        {
+          "path": "windhawk/docs/NAMING_RESEARCH.md",
+          "line": 6467
+        },
+        {
+          "path": "windhawk/docs/NAMING_ROUND_2.md",
+          "line": 6591
+        },
+        {
+          "path": "windhawk/docs/NEXT_BETA_RELEASE_NOTES.md",
+          "line": 6874
+        },
+        {
+          "path": "windhawk/docs/NEXT_BETA_REPORT.md",
+          "line": 7101
+        },
+        {
+          "path": "windhawk/docs/PHASE_1_REPORT.md",
+          "line": 7313
+        },
+        {
+          "path": "windhawk/docs/PRODUCTION_REPORT.md",
+          "line": 7406
+        },
+        {
+          "path": "windhawk/docs/PROVENANCE.md",
+          "line": 7500
+        },
+        {
+          "path": "windhawk/docs/QUICK_SETUP.md",
+          "line": 7640
+        },
+        {
+          "path": "windhawk/docs/QUICK_SETUP_REFINEMENT.md",
+          "line": 7720
+        },
+        {
+          "path": "windhawk/docs/QUICK_SETUP_REVISION.md",
+          "line": 7818
+        },
+        {
+          "path": "windhawk/docs/REPOSITORY_RELEASE_PLAN.md",
+          "line": 7905
+        },
+        {
+          "path": "windhawk/docs/SOURCE_COMPARISON.md",
+          "line": 8009
+        },
+        {
+          "path": "windhawk/docs/THIRD_PARTY_NOTICES.md",
+          "line": 8205
+        },
+        {
+          "path": "windhawk/docs/V1_RELEASE_REPORT.md",
+          "line": 8269
+        },
+        {
+          "path": "windhawk/docs/WINDHAWK_INTEGRATION.md",
+          "line": 8449
+        },
+        {
+          "path": "windhawk/docs/WINDHAWK_PAGE_REVIEW.md",
+          "line": 8523
+        },
+        {
+          "path": "windhawk/mods/dac-windhawk.wh.cpp",
+          "line": 8607
+        },
+        {
+          "path": "windhawk/prototype/oled-aegis-prototype.wh.cpp",
+          "line": 11002
+        },
+        {
+          "path": "windhawk/tests/fixtures/rc4-source.zip",
+          "line": 11372
+        },
+        {
+          "path": "windhawk/tests/platform.cpp",
+          "line": 12153
+        },
+        {
+          "path": "windhawk/tests/policy.cpp",
+          "line": 12659
+        },
+        {
+          "path": "windhawk/theme/fujin-v0.1.0.zip",
+          "line": 12821
+        },
+        {
+          "path": "windhawk/tools/archive-evidence.ps1",
+          "line": 12916
+        },
+        {
+          "path": "windhawk/tools/build-production.ps1",
+          "line": 13042
+        },
+        {
+          "path": "windhawk/tools/build.ps1",
+          "line": 13113
+        },
+        {
+          "path": "windhawk/tools/diagnose-beta.ps1",
+          "line": 13144
+        },
+        {
+          "path": "windhawk/tools/evidence.ps1",
+          "line": 13169
+        },
+        {
+          "path": "windhawk/tools/harness.cpp",
+          "line": 13324
+        },
+        {
+          "path": "windhawk/tools/package-beta.ps1",
+          "line": 13408
+        },
+        {
+          "path": "windhawk/tools/package-production.ps1",
+          "line": 13434
+        },
+        {
+          "path": "windhawk/tools/produce-beta.ps1",
+          "line": 13471
+        },
+        {
+          "path": "windhawk/tools/produce-release.ps1",
+          "line": 13491
+        },
+        {
+          "path": "windhawk/tools/release-spec.ps1",
+          "line": 13510
+        },
+        {
+          "path": "windhawk/tools/run-check.ps1",
+          "line": 13625
+        },
+        {
+          "path": "windhawk/tools/stop-beta.ps1",
+          "line": 13646
+        },
+        {
+          "path": "windhawk/tools/sync-fujin.ps1",
+          "line": 13668
+        },
+        {
+          "path": "windhawk/tools/test-beta-tooling.ps1",
+          "line": 13720
+        },
+        {
+          "path": "windhawk/tools/test-production.ps1",
+          "line": 13785
+        },
+        {
+          "path": "windhawk/tools/test-rollback.ps1",
+          "line": 13844
+        },
+        {
+          "path": "windhawk/tools/tooling-fixtures.ps1",
+          "line": 13921
+        },
+        {
+          "path": "windhawk/tools/verify-beta.ps1",
+          "line": 13997
+        }
+      ]
+    }
+  ]
+}

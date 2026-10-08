@@ -115,6 +115,9 @@ physical power button. See [security and trust boundaries](SECURITY.md).
 Include the DAC/Windows/Windhawk versions, expected behavior, and reproducible
 steps in bug reports. Review diagnostic attachments before sharing them.
 
+For review of the earlier workspace's pending development and continuity work,
+see the [archived checkpoint and review index](https://github.com/StarlightDaemon/dac-windhawk/tree/main/docs/review/2026-10-08).
+
 ## Development and license
 
 DAC ships as a self-contained C++ source mod. Maintainers use PowerShell 7 and

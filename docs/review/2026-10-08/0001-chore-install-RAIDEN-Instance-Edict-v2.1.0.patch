@@ -1,0 +1,1546 @@
+From 137061985a186db47a0a7a99e07899b7bcbff417 Mon Sep 17 00:00:00 2001
+From: StarlightDaemon <23347919+StarlightDaemon@users.noreply.github.com>
+Date: Sun, 4 Oct 2026 01:14:58 -0600
+Subject: [PATCH 1/3] chore: install RAIDEN Instance (Edict v2.1.0)
+
+---
+ .gitattributes                                |   2 +
+ .gitignore                                    |  11 +
+ .raiden/README.md                             |   7 +
+ .raiden/instance/baseline.json                |  36 +++
+ .raiden/instance/metadata.json                |  15 +
+ .raiden/local/README.md                       |   9 +
+ .raiden/local/ROUTING.md                      |  15 +
+ .../local/prompts/instance-session-startup.md |  76 +++++
+ .raiden/local/rules/DEVELOPMENT.md            |  14 +
+ .raiden/local/rules/NATIVE_LOADING.md         |  22 ++
+ .raiden/state/CURRENT_STATE.md                |  12 +
+ .raiden/state/DECISIONS.md                    |  22 ++
+ .raiden/state/OPEN_LOOPS.md                   |  43 +++
+ .raiden/state/README.md                       |  11 +
+ .raiden/state/WORK_LOG.md                     |  37 +++
+ .raiden/writ/AGENTS.md                        | 242 +++++++++++++++
+ .raiden/writ/FORK_REVIEW_PROTOCOL.md          | 288 ++++++++++++++++++
+ .raiden/writ/OPERATING_RULES.md               | 145 +++++++++
+ .raiden/writ/README.md                        |  33 ++
+ .raiden/writ/ROUTING_POLICY.md                |  61 ++++
+ .raiden/writ/WORKSPACE_AUDIT_PROTOCOL.md      | 241 +++++++++++++++
+ AGENTS.md                                     |  21 ++
+ 22 files changed, 1363 insertions(+)
+ create mode 100644 .gitattributes
+ create mode 100644 .raiden/README.md
+ create mode 100644 .raiden/instance/baseline.json
+ create mode 100644 .raiden/instance/metadata.json
+ create mode 100644 .raiden/local/README.md
+ create mode 100644 .raiden/local/ROUTING.md
+ create mode 100644 .raiden/local/prompts/instance-session-startup.md
+ create mode 100644 .raiden/local/rules/DEVELOPMENT.md
+ create mode 100644 .raiden/local/rules/NATIVE_LOADING.md
+ create mode 100644 .raiden/state/CURRENT_STATE.md
+ create mode 100644 .raiden/state/DECISIONS.md
+ create mode 100644 .raiden/state/OPEN_LOOPS.md
+ create mode 100644 .raiden/state/README.md
+ create mode 100644 .raiden/state/WORK_LOG.md
+ create mode 100644 .raiden/writ/AGENTS.md
+ create mode 100644 .raiden/writ/FORK_REVIEW_PROTOCOL.md
+ create mode 100644 .raiden/writ/OPERATING_RULES.md
+ create mode 100644 .raiden/writ/README.md
+ create mode 100644 .raiden/writ/ROUTING_POLICY.md
+ create mode 100644 .raiden/writ/WORKSPACE_AUDIT_PROTOCOL.md
+ create mode 100644 AGENTS.md
+
+diff --git a/.gitattributes b/.gitattributes
+new file mode 100644
+index 0000000000000000000000000000000000000000..aef7af52f0226b775c58a51236e4067a1ff8c661
+--- /dev/null
++++ b/.gitattributes
+@@ -0,0 +1,2 @@
++.raiden/writ/*.md text eol=lf
++.raiden/writ/**/*.md text eol=lf
+diff --git a/.gitignore b/.gitignore
+index 567609b1234a9b8806c5a05da6c866e480aa148d..f288e8fa06f4b54ff20b42e6d1c17718e18a8a30 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1 +1,12 @@
+ build/
++
++# RAIDEN - public-instance audit exclusions
++.audits/
++audit-reports/
++.raiden/state/AUDIT_LOG.md
++.raiden/state/last-audit.md
++.raiden/state/FORK_REVIEW_LOG.md
++.raiden/state/last-fork-review.md
++
++# Machine-specific private setup paths
++.raiden/local/HOST.md
+diff --git a/.raiden/README.md b/.raiden/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..cfd540f22e846ef8170d4475ee9f119e9026de10
+--- /dev/null
++++ b/.raiden/README.md
+@@ -0,0 +1,7 @@
++# RAIDEN Instance
++
++Read `state/CURRENT_STATE.md` for project status, `state/OPEN_LOOPS.md` for
++pending work, and `state/DECISIONS.md` for settled choices. `local/README.md`
++indexes project adaptations; `writ/AGENTS.md` is the full managed guide.
++Installation metadata and verified hashes live in `instance/`.
++The root README and BUILD.md remain the upstream product and build guides.
+diff --git a/.raiden/instance/baseline.json b/.raiden/instance/baseline.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..3c503d60eca25f4eba9c7ba9afa51b0d99720ff0
+--- /dev/null
++++ b/.raiden/instance/baseline.json
+@@ -0,0 +1,36 @@
++{
++  "installed_edict_version": "2.1.0",
++  "installed_at": "2026-10-04T07:10:13.295301+00:00",
++  "managed_files": [
++    {
++      "path": "README.md",
++      "hash": "22b738fdd88fd8fd3d3048149c395d3580c27de198a3e0714d11b81e5e38c150"
++    },
++    {
++      "path": "OPERATING_RULES.md",
++      "hash": "bdbb6cfb9c8a39d69b98ed68920dc5f2faec5ed32b249480c828fd98e23373ec"
++    },
++    {
++      "path": "ROUTING_POLICY.md",
++      "hash": "972c3cbaa9b40ff9e43fc1857ba4f274ad7b52aa21416ed50e28d8811b3fb800"
++    },
++    {
++      "path": "WORKSPACE_AUDIT_PROTOCOL.md",
++      "hash": "e7c5a8b71aa06ef3bf565c03c3d3c391b7613a90c5cd0beef3e8a02aea0955a4"
++    },
++    {
++      "path": "FORK_REVIEW_PROTOCOL.md",
++      "hash": "651d5de656b2755f156f6eed524a44e70b18048262bd685c6b1a440bb96f2d04"
++    },
++    {
++      "path": "AGENTS.md",
++      "hash": "25328cc8866b37e06fc8b2ff07c44877369caa1f8950771a6d2cd88ad39176d0"
++    }
++  ],
++  "hook_files": [
++    {
++      "path": "hooks/commit-msg",
++      "hash": "6588102c21e534d202afc522f057c839143486239a9d436e384ea697c9c13556"
++    }
++  ]
++}
+diff --git a/.raiden/instance/metadata.json b/.raiden/instance/metadata.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..ad22845b4de442ddd230f7adc78be5336b48c0a7
+--- /dev/null
++++ b/.raiden/instance/metadata.json
+@@ -0,0 +1,15 @@
++{
++  "instance_schema_version": "1",
++  "instance_form_type": "raiden-instance",
++  "installed_edict_version": "2.1.0",
++  "state_schema_version": 2,
++  "managed_roots": [
++    ".raiden/writ"
++  ],
++  "overlay_roots": [
++    ".raiden/local"
++  ],
++  "live_state_roots": [
++    ".raiden/state"
++  ]
++}
+diff --git a/.raiden/local/README.md b/.raiden/local/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..0f5c9a43a6f90813e8fb6b3a74695fb8ac224f4b
+--- /dev/null
++++ b/.raiden/local/README.md
+@@ -0,0 +1,9 @@
++# Local Overlay
++
++- `rules/DEVELOPMENT.md`: source layout and build boundaries.
++- `rules/NATIVE_LOADING.md`: native harness startup requirements and verification.
++- `ROUTING.md`: generic routing policy for this project.
++- `prompts/instance-session-startup.md`: reusable session kickoff.
++- `HOST.md`: ignored machine-specific framework and setup-evidence paths.
++
++The product documentation remains at the repository root.
+diff --git a/.raiden/local/ROUTING.md b/.raiden/local/ROUTING.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..4b317b1e9ec4d5dabd5d7665bd44090230e2e5e9
+--- /dev/null
++++ b/.raiden/local/ROUTING.md
+@@ -0,0 +1,15 @@
++# Routing
++
++## Ladder
++
++1. **Top rung** = the model currently configured by the operator for this chat.
++
++## Offload Pool
++
++No additional providers are configured here. The canonical installation
++procedure requires an independent Instance agent to review and seed state.
++
++## Billing / Cost Constraints
++
++Use the operator's existing chat settings. Configure additional rungs only
++when the operator supplies a preferred mapping.
+diff --git a/.raiden/local/prompts/instance-session-startup.md b/.raiden/local/prompts/instance-session-startup.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..408485ba3565a9482392e751f5a34eed97e37f46
+--- /dev/null
++++ b/.raiden/local/prompts/instance-session-startup.md
+@@ -0,0 +1,76 @@
++# Instance Session Startup Template
++
++## Prompt ID
++
++`raiden.instance.session-startup.v1`
++
++## Purpose
++
++Use this prompt at the start of any RAIDEN Instance agent session to review
++repo state, surface unpushed work, and obtain a scoped token from the operator
++before pushing.
++
++Designed to be reusable across all RAIDEN Instance repos without modification.
++The operator fills in the repo name at launch.
++
++## Target Agent
++
++Any RAIDEN Instance embedded agent. Model-agnostic. No elevated reasoning level
++required — this is a state-check and operator-confirmation flow, not deep
++planning work.
++
++## Template
++
++```text
++You are starting a session in a RAIDEN Instance repo.
++
++Read first:
++- AGENTS.md
++- .raiden/README.md
++- .raiden/state/CURRENT_STATE.md (if present)
++
++Then run:
++- git status
++- git log --oneline -10
++- git remote -v
++
++Report to the operator:
++- current branch
++- number of unpushed commits (if any), with their one-line summaries
++- any uncommitted changes
++- any untracked files that look like work product (not node_modules, build
++  output, or generated files)
++
++Then ask the operator: "Do you want to push the unpushed work?"
++
++If yes, request a token:
++
++  "Please generate a fine-grained GitHub PAT for this repo with:
++   - Repository access: this repo only (<repo name>)
++   - Contents: Read and write
++   - Pull requests: Read and write
++   - Metadata: Read (required, auto-set)
++   - Expiry: 1 day
++   Paste the token here when ready."
++
++Once the token is provided:
++- Authenticate: echo "<token>" | gh auth login --with-token
++- Verify: gh auth status
++- Push: git push origin <branch>
++- Confirm success to the operator
++
++Do not:
++- push without operator confirmation
++- request broader token scope than listed above
++- store or log the token beyond what is needed to authenticate and push
++- commit or stage any files without explicit operator instruction
++```
++
++## Notes
++
++- Fits the planned "operator-facing kickoff prompts" category from
++  `GOVERNANCE.md`.
++- Token scope rule (fine-grained, repo-scoped, 1-day expiry) matches the
++  operator's session-token rotation policy.
++- The operator voids or allows the token to expire after each session by
++  design — do not suggest reuse across sessions.
+diff --git a/.raiden/local/rules/DEVELOPMENT.md b/.raiden/local/rules/DEVELOPMENT.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..b46fb9caa22cc0ccddb2aad4bf54635322505ad5
+--- /dev/null
++++ b/.raiden/local/rules/DEVELOPMENT.md
+@@ -0,0 +1,14 @@
++# Development
++
++Preserve the upstream layout: Win32 C in `src/`, resources in `images/`,
++build entry points at root, and CI in `.github/workflows/`.
++Read root `BUILD.md` before compiling. Generated outputs belong in ignored
++`build/`. The documented supported toolchain is MSVC with the Windows SDK.
++
++Keep `origin` attached to the operator's fork; `upstream` identifies its
++original parent. Fetch and review upstream changes before merging; never
++force-sync or replace the fork's history. Preparation alone does not
++authorize starting the application or changing Windows startup/settings.
++
++Keep upstream source and product documentation unchanged during governance
++setup. Use `.raiden/state/` for setup status and pending validation.
+diff --git a/.raiden/local/rules/NATIVE_LOADING.md b/.raiden/local/rules/NATIVE_LOADING.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..5867f4d6b1ed3b71fd3b065e1c0f541f1c8ec17e
+--- /dev/null
++++ b/.raiden/local/rules/NATIVE_LOADING.md
+@@ -0,0 +1,22 @@
++# Native Startup Loading
++
++The root `AGENTS.md` is the repository startup bridge. Follow the central
++installation procedure's Step 7 native loading contract (documentation
++checked by that procedure on 2026-09-27). Manual reads are insufficient proof
++of automatic discovery; record fresh-session evidence under LOOP-003.
++
++For Codex, use native repository instruction discovery and inspect applicable
++override, ancestor, and nested instruction precedence. The official guide is
++linked from the central installation procedure.
++
++For Claude Code, require native support at v2.1.277 or later; use v2.1.281 or
++later for environments affected by earlier support limitations. Enable its
++built-in `agents-md` plugin and confirm loading through `/memory`. Competing
++`CLAUDE.md` or `CLAUDE.local.md` files on the project path suppress default
++discovery; if retained elsewhere, operator configuration must select
++`claude-md-and-agents-md`. Project/local settings cannot set that option.
++
++This installation deliberately has no root `CLAUDE.md` adapter (D-0002).
++Keep managed Writ unchanged even if a legacy adapter lint appears. Run RAIDEN
++plan and doctor from the central framework; ignored `../HOST.md` indexes
++machine-specific locations.
+diff --git a/.raiden/state/CURRENT_STATE.md b/.raiden/state/CURRENT_STATE.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..a26e17b35d3448b5ddc2c1ed5d5dd99441f144c3
+--- /dev/null
++++ b/.raiden/state/CURRENT_STATE.md
+@@ -0,0 +1,12 @@
++# Current State
++
++OLED Aegis has a repository-local RAIDEN Instance control plane. The product
++orientation remains in root `README.md` and `BUILD.md`; local development
++conventions live in `../local/rules/DEVELOPMENT.md`.
++
++The setup scope is governed by D-0001. Native harness loading follows D-0002
++and `../local/rules/NATIVE_LOADING.md`.
++
++Next work is recorded in LOOP-001, LOOP-002, and LOOP-003. Installation and
++verification evidence lives in `WORK_LOG.md`. Read `../instance/metadata.json`
++for installation facts and ignored `../local/HOST.md` for host-only locations.
+diff --git a/.raiden/state/DECISIONS.md b/.raiden/state/DECISIONS.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..e17d6861ed144d3d0749eec8b75a17b767ede694
+--- /dev/null
++++ b/.raiden/state/DECISIONS.md
+@@ -0,0 +1,22 @@
++# Decisions
++
++## D-0001 - Isolated repository preparation
++
++Date: 2026-10-04 (operator date).
++
++The operator approved the isolated setup: install only into the new checkout,
++leave existing sibling repositories untouched, and prepare fleet registration
++as a separate private patch. Preserve upstream source, product documentation,
++build entry points, CI, assets, and history. Append only the required setup
++exclusions to the original `.gitignore`. Commit setup locally with the
++operator identity and the installed hook; do not push in this session.
++
++## D-0002 - Native AGENTS.md loading contract
++
++Date: 2026-10-04 (operator date).
++
++Follow the central installation procedure's native loading contract for this
++new installation. Do not introduce a `CLAUDE.md` adapter. The managed guide
++still describes a legacy pointer; retain the managed bytes and resolve this
++installation through the newer explicit procedure. Local harness requirements
++live in `../local/rules/NATIVE_LOADING.md`; validation is tracked in LOOP-003.
+diff --git a/.raiden/state/OPEN_LOOPS.md b/.raiden/state/OPEN_LOOPS.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..c2603272ad45b60fd7a0dbdcef9d2ede7c88576a
+--- /dev/null
++++ b/.raiden/state/OPEN_LOOPS.md
+@@ -0,0 +1,43 @@
++# Open Loops
++
++## LOOP-001 - Private fleet registration
++
++- Status: open; deferred under D-0001.
++- Gate: operator.
++- Success Condition: the private registration patch is applied and committed
++  with registry, decision, current-state and distribution-log updates together.
++
++The central agent prepared registry and distribution-log additions as a
++private patch outside this repository. No fleet membership is claimed here.
++The private console is the authoritative home for registration facts.
++Consult ignored `../local/HOST.md` for the patch location. Apply and verify
++that patch in a separately authorized private-console session after its
++existing work has been resolved.
++
++## LOOP-002 - Supported build verification
++
++- Status: open; blocked by absent supported toolchain.
++- Gate: operator.
++- Success Condition: a build using the documented MSVC toolchain completes,
++  with its command, compiler version and result recorded in WORK_LOG.md.
++
++MSVC and the Windows SDK are unavailable on this host. The existing Windhawk
++clang/MinGW syntax probe failed on audio GUID and interface definitions in
++its headers; it does not establish a failure under the documented MSVC
++toolchain. Obtain that toolchain and run root `build.ps1` as documented in
++`BUILD.md`, recording the result. Keep upstream source unchanged during this
++setup and do not start or install the application as part of verification.
++
++## LOOP-003 - Fresh native harness loading verification
++
++- Status: open; requires a fresh harness session.
++- Gate: operator.
++- Success Condition: a fresh harness session provides evidence that the root
++  bridge is automatically loaded with the expected instruction precedence.
++
++Manual reading of the bridge and Writ during installation does not prove
++automatic startup discovery. Start a fresh session with this repository as
++the working directory and inspect its actual loaded instructions according
++to `../local/rules/NATIVE_LOADING.md`. Record the harness version, relevant
++operator configuration, applicable instruction precedence, and loading
++evidence before closing this loop.
+diff --git a/.raiden/state/README.md b/.raiden/state/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..9e686c9d8781957974c8d76a9be81e6f3d4aa423
+--- /dev/null
++++ b/.raiden/state/README.md
+@@ -0,0 +1,11 @@
++# Instance State
++
++- `CURRENT_STATE.md`: present work and links to its authoritative records.
++- `OPEN_LOOPS.md`: pending items and their disposition.
++- `DECISIONS.md`: durable local decisions.
++- `WORK_LOG.md`: dated evidence of completed work.
++
++Installed version and schema facts live in `../instance/metadata.json`;
++managed integrity lives in `../instance/baseline.json`. Machine-specific
++paths and private setup evidence are indexed by ignored `../local/HOST.md`.
++Freshness comes from git history.
+diff --git a/.raiden/state/WORK_LOG.md b/.raiden/state/WORK_LOG.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..147dd5c47c82b7c08f3e941bfa8c6f7f69f815b2
+--- /dev/null
++++ b/.raiden/state/WORK_LOG.md
+@@ -0,0 +1,37 @@
++# Work Log
++
++## 2026-10-04 - Isolated setup handoff review
++
++The central agent installed the canonical package and handed the checkout to
++an independent Instance agent. The Instance agent read the root bridge,
++control-plane index, managed guide and operating rules, routing policy,
++local development rules, and installation handoff. Seeded the five required
++state files and recorded D-0001, D-0002, and LOOP-001 through LOOP-003.
++
++The starting upstream commit was
++`edaef74233b75708ea4354e3e15793f195567e34`. `origin` points to the operator's
++fork, and `upstream` points to its original parent. Host-specific evidence
++and private patch locations remain in ignored `../local/HOST.md`.
++
++Independent verification:
++
++- All 13 original product files other than `.gitignore` matched the saved
++  SHA-256 hashes; `.gitignore` retained its original entry and only appended
++  setup exclusions. `git diff --check` passed.
++- `plan` reported compatible, already up to date, no conflicts, and no
++  anomalies. Managed Writ and live hook matched the canonical manifest.
++- Standalone `doctor` found no warnings or failures. Its initial freshness
++  information reflects state files awaiting this first local setup commit.
++- `doctor --package` additionally verified baseline hashes against the
++  canonical manifest. Its sole warning is existing central specification
++  version drift; this is outside the Instance write boundary and was reported
++  to the central agent. No root adapter warning was emitted.
++- Git Bash reported the live hook as executable (`-rwxr-xr-x`). Git's normal
++  hook runner accepted an operator-only message (exit 0) and rejected a
++  `Co-Authored-By` trailer (exit 1).
++- Managed Markdown resolves to `text` with `eol=lf`. Host notes and protocol
++  audit/review ledgers resolve to the intended ignore rules.
++
++The handoff's unsupported Windhawk clang probe did not validate the documented
++build toolchain; see LOOP-002. No fresh harness discovery test was performed;
++see LOOP-003. No application was launched and no setup changes were pushed.
+diff --git a/.raiden/writ/AGENTS.md b/.raiden/writ/AGENTS.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..a76b3aca47826042076ea71187bdf02c12323fcb
+--- /dev/null
++++ b/.raiden/writ/AGENTS.md
+@@ -0,0 +1,242 @@
++# RAIDEN Instance — Agent Guide
++
++This file is part of the RAIDEN-managed Writ. It is the authoritative agent guide for
++any repo running a RAIDEN Instance control plane. Do not edit it directly — changes
++belong in the Edict package in the RAIDEN central repo.
++
++---
++
++## What This Repo Is
++
++This is a **RAIDEN Instance** — a downstream repo running RAIDEN's managed control
++plane in `.raiden/`. RAIDEN (the central framework repo) authors the Writ installed
++here; this repo is governed by RAIDEN but owned and operated independently.
++
++RAIDEN is not running inside this repo. All RAIDEN tooling is invoked from the central
++repo against this Instance as a target.
++
++---
++
++## Naming Canon
++
++Use these five terms exactly. No synonyms, no paraphrase.
++
++| Term | Meaning |
++|---|---|
++| **RAIDEN** | The central framework repo and governing authority |
++| **Edict** | The managed instruction/package that RAIDEN issues |
++| **RAIDEN Instance** | This repo — any downstream repo with a `.raiden/` control plane |
++| **Writ** | The installed managed core in `.raiden/writ/` (Edict payload after install) |
++| **payload** | The installable Edict subset before install; becomes the Writ |
++
++---
++
++## Control Plane Read Order
++
++Before any repo-local work, read in this order. Stop when you have what the task requires.
++
++1. `AGENTS.md` (repo root) — entry point and key constraints
++2. `.raiden/README.md` — control plane navigation index
++3. `.raiden/state/CURRENT_STATE.md` — active work, deferred items, last known state
++4. `.raiden/state/OPEN_LOOPS.md` — pending work and unresolved items
++5. `.raiden/state/DECISIONS.md` — durable decision record for this repo
++6. `.raiden/local/README.md` — local overlay index (if present)
++7. `.raiden/writ/AGENTS.md` (this file) — full agent guide including tooling surface
++
++Read only the subtree relevant to the task beyond step 2.
++
++The repo-root `CLAUDE.md` is a pointer to `AGENTS.md` only — it carries no
++substantive governance (see `OPERATING_RULES.md`, "Root CLAUDE.md Is a Pointer
++Only"). Do not read it for policy; substantive local rules live in
++`.raiden/local/rules/`.
++
++---
++
++## Memory Precedence (D-0041)
++
++The `.raiden/state/` files read above are the **system of record** for project
++truth in this Instance. Native per-project memory (host- and user-scoped) holds
++operator and host preferences only.
++
++When native memory and RAIDEN's committed state disagree on any project fact,
++**RAIDEN state wins.** Do not record durable project facts solely into native
++memory; any project fact worth retaining is written to `.raiden/state/` in the
++same pass. Native memory is invisible to other operators, hosts, and models —
++committed state travels with the repo to whatever reads it next.
++
++Every durable fact has one authoritative home; other surfaces reference it and
++never restate its value (the fact-home rule in `OPERATING_RULES.md`). The
++installed Edict version, in particular, lives in
++`.raiden/instance/metadata.json` and is never copied into state prose.
++
++---
++
++## Model Routing
++
++RAIDEN protocols route work along a **cost/capability ladder**, defined in
++`ROUTING_POLICY.md` (managed). Protocols name a rung — "the top rung", "a rung
++cleared for mechanical work", "a judgment-appropriate rung" — never a model. The
++ladder's actual rungs and the models bound to each are operator-defined in the
++local overlay `.raiden/local/ROUTING.md`, never in a managed file.
++
++---
++
++## RAIDEN Tooling — Where It Lives
++
++RAIDEN tooling lives in the **RAIDEN central repo**, not in this repo.
++
++The central framework path is operator-specific and is not carried in any
++managed file. Per-Instance install facts live in `.raiden/instance/metadata.json`;
++if your workflows need the central repo location recorded, store it in
++`.raiden/local/` (overlay), not here.
++
++Do not attempt to invoke RAIDEN tooling from within this repo.
++All updater operations targeting this Instance are run from the central repo,
++with this repo supplied as the `--instance` or `--target` argument.
++
++RAIDEN's governance is split across two repos: the central framework repo
++(which authors and versions the Edict) and a private ops repo — the fleet
++console — which holds the registry naming every Instance, fleet-wide
++decisions and open loops, and the rollout journal. This Instance's own
++`.raiden/state/` is the system of record for facts local to it; the ops
++repo is the system of record for facts about the fleet as a whole (this
++Instance's registered version, lifecycle status, and registry row). Neither
++repo's tooling runs from inside this Instance — see Fleet Verification below.
++
++### Installation
++
++RAIDEN Instances are installed by a RAIDEN central agent following
++`toolkit/edict/AGENT_INSTALL.md` in the central repo. The agent writes all
++files directly; `plan` is the post-install verification authority.
++
++### `raiden_updater` CLI — direct package surface
++
++Run from `toolkit/updater/` within the RAIDEN repo:
++
++```
++python3 -m raiden_updater.cli plan   --instance <this-repo-path> --package <path>
++python3 -m raiden_updater.cli apply  --instance <this-repo-path> --package <path>
++python3 -m raiden_updater.cli doctor --instance <this-repo-path>
++```
++
++- `plan` — read-only; exits 0 if apply-safe or already current, exits 1 otherwise
++- `apply` — requires an apply-safe plan; raises `ApplyError` otherwise
++- `doctor` — read-only per-instance structural and freshness verification; writes nothing
++
++### Fleet Verification (ops-side)
++
++This Instance's registry row is periodically checked against reality by a
++**fleet sweep** — `raiden_updater.cli fleet --registry <ops-registry-path>
++[--write]` — run from the central repo against the ops repo's registry. The
++sweep is read-only against every Instance it checks, including this one: it
++never writes here. `--write` regenerates the ops repo's own
++`state/FLEET_STATUS.md`, a generated view (not canon) of fleet-wide version,
++baseline, and doctor status. This Instance is never expected to run the
++sweep itself; findings about it surface to the operator through the ops repo.
++
++### Edict package location
++
++Canonical Edict package: `toolkit/edict/package/` in the central repo.
++Payload files install to `.raiden/writ/` in this Instance.
++
++### Plan block reasons (exits 1)
++
++| Reason | Cause |
++|---|---|
++| `missing_baseline` | `.raiden/writ/` has files but no `baseline.json` |
++| schema incompatibility | `instance_schema_version` not in `compatible_instance_schemas` |
++| `protected_path_write` | package would write into overlay or state roots |
++| invalid version | version string is not strict `MAJOR.MINOR.PATCH` |
++| `local_modification` | a managed file was locally modified |
++| `Already up to date` | `can_apply=False` but exits **0** — not an error |
++
++---
++
++## Inviolable Constraints
++
++### D-0016 — Four-Point Managed-Core Update Contract
++
++Every Writ update must satisfy all four points:
++
++1. Update managed core (`.raiden/writ/`)
++2. Preserve local overlay (`.raiden/local/`)
++3. Preserve local live state (`.raiden/state/`)
++4. Stop and report if any managed file was locally modified — no silent overwrites
++
++Conflicts surface to the operator before `apply` runs.
++
++### Commit Attribution
++
++- Do not add `Co-Authored-By`, `Co-authored-by`, or any agent attribution trailer lines.
++- Commits carry only the operator's git identity.
++- The `commit-msg` hook (installed by RAIDEN) enforces this at the git level.
++- Do not remove or bypass the hook.
++
++### Mainline Branch Naming
++
++All RAIDEN-managed repos use `main` as the mainline branch. Never `master`.
++If `git init` creates `master`, rename immediately: `git branch -m master main`.
++
++---
++
++## Write Boundaries
++
++**May write:**
++- Repo source files (subject to this repo's project rules)
++- `.raiden/local/` — local overlay: prompts, rules, project-specific context, `ROUTING.md`
++- `.raiden/state/` — live continuity under **state schema v2**: required set
++  `README.md`, `CURRENT_STATE.md`, `OPEN_LOOPS.md`, `DECISIONS.md`,
++  `WORK_LOG.md` (optional: `GOALS.md`, `SNAPSHOTS/`). Protocol-owned state files
++  (audit and fork-review ledgers) are written by their protocols, not by hand.
++
++**Must not write:**
++- `.raiden/writ/` — RAIDEN-managed core; any change requires the Edict update path
++- Files in the RAIDEN central repo (unless operating as the RAIDEN agent)
++- The `commit-msg` hook — do not remove, bypass, or modify it
++
++The Instance's `metadata.json` records `state_schema_version` (2). The full
++state set, including protocol-owned and install-time artifacts, is defined in
++`toolkit/instance/STRUCTURE.md`.
++
++---
++
++## Local Prompts and Overlays
++
++Operator-customized prompts: `.raiden/local/prompts/`
++
++Standard prompts installed by RAIDEN:
++
++| File | Prompt ID | Purpose |
++|---|---|---|
++| `instance-session-startup.md` | `raiden.instance.session-startup.v1` | Session kickoff: git status, unpushed work, operator push confirmation |
++| `audit-protocol-install-handoff.md` | — | Workspace audit handoff |
++| `migration-remediation.md` | — | Writ migration guidance |
++
++Repo-specific prompts added by the operator live alongside these and are not managed.
++
++---
++
++## Writ Contents
++
++Files installed by the current Writ under `.raiden/writ/`:
++
++| File | Purpose |
++|---|---|
++| `README.md` | Writ managed-core index |
++| `OPERATING_RULES.md` | Core operating rules, ownership boundary, Report-and-Hold, commit attribution, fact-home rule, one-writer-per-repo, citation namespace, CLAUDE.md pointer rule |
++| `ROUTING_POLICY.md` | The cost/capability routing ladder referenced by the protocols |
++| `WORKSPACE_AUDIT_PROTOCOL.md` | Workspace audit specification |
++| `FORK_REVIEW_PROTOCOL.md` | Fork review protocol |
++| `AGENTS.md` | This file — full agent guide |
++
++---
++
++## Workflow
++
++- Follow the control plane read order before starting any task.
++- Keep edits narrow; review the diff before committing.
++- Do not edit `.raiden/writ/` files — they are managed core owned by RAIDEN.
++- For Writ updates, report the required operation to the operator; the operator runs the
++  updater from the central repo.
++- Prefer small targeted patches over sweeping rewrites.
++- If a task would cross write boundaries, stop and confirm with the operator before proceeding.
+diff --git a/.raiden/writ/FORK_REVIEW_PROTOCOL.md b/.raiden/writ/FORK_REVIEW_PROTOCOL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..9ec03f9fc0178ddbbb45b01df0f552e31e12b4fc
+--- /dev/null
++++ b/.raiden/writ/FORK_REVIEW_PROTOCOL.md
+@@ -0,0 +1,288 @@
++# Fork Review Protocol
++
++This Edict defines the canonical fork review process for a RAIDEN Instance. It is the authoritative specification of fork analysis scope, attribution tracking, synthesis routing, output structure, and state publication. Any agent invoked to perform a fork review follows this protocol exactly.
++
++## Purpose
++
++The fork review is a read-only comparative analysis of one or more forked source files against a designated baseline source. It evaluates:
++
++- What each fork added, removed, or modified relative to the baseline
++- Change-level attribution — which author introduced which change
++- Feature surface across all forks — overlaps, unique contributions, conflicts
++- Code quality signals — improvements, regressions, dead code, introduced bugs
++- Synthesis candidates — changes worth carrying forward into a successor
++- Cross-fork conflicts and incompatibilities
++- Open observations (a deliberately curious speculative pass)
++
++The review produces a per-fork Markdown report and a cross-fork synthesis report inside the Instance, and publishes a summary into the Instance's state layer.
++
++## Authority
++
++This Edict is canonical under RAIDEN's authority order. It is installed into `.raiden/writ/` by the updater. Per-Instance local overrides are NOT honored for this protocol — Instances may add fork-review-related local prompts under `.raiden/local/prompts/` for invocation convenience, but the protocol body itself is sourced from this file.
++
++## Companion Canon
++
++- `toolkit/prompts/handoff-template.md` — structural model for synthesis seeds (see Synthesis Routing below). Each synthesis candidate's seed is a bounded-task handoff from the review agent to a downstream implementation agent.
++- `toolkit/prompts/completion-template.md` — structural model for state-publication closeout (see Output).
++- `WORKSPACE_AUDIT_PROTOCOL.md` — sibling edict for repository health auditing. Fork review is a distinct domain (comparative code analysis and attribution) and is not a substitute for nor a duplicate of the workspace audit.
++
++## Model Expectation
++
++The fork review requires a model capable of precise diff reasoning, change-level attribution across multiple files, cross-fork synthesis judgment, and a speculative observations pass. Route to **the top available rung** (see `ROUTING_POLICY.md`); if the top rung's model is unavailable, the adjacent rung is the natural substitute per the ladder's built-in fallback.
++
++Per-Instance routing config may override this preference; see Synthesis Routing for routing-config lookup. Rungs resolve to concrete models through the operator's local mapping (`.raiden/local/ROUTING.md`).
++
++## Hard Constraints
++
++- All source files under review are read-only. No commits, pushes, tags, stashes, branch operations, or any modification to fork source files, the baseline file, or any other source file.
++- No mutating commands of any kind against source files.
++- Permitted operations: read (`cat`, `head`, `less`), search (`grep`, `rg`, `find`, `ls`), diff (`diff`, `git diff`), and structural inspection only.
++- Permitted writes: per-fork report files, the cross-fork synthesis report, and the state-publication files (paths defined under Output). No other writes anywhere in the Instance.
++- Do NOT modify `CURRENT_STATE.md`, `OPEN_LOOPS.md`, or `DECISIONS.md`. Operator curation owns those.
++
++## Scope
++
++- The baseline file is the designated original source. It is the immutable comparison anchor for all forks. It is never treated as a fork candidate and never appears as a finding subject. Its path will be specified at invocation or identified by the `og_` prefix convention in `/forks/`.
++- Each fork is analyzed individually against the baseline, then collectively against each other.
++- Read RAIDEN orientation in order: `AGENTS.md` → `.raiden/README.md` → `.raiden/state/CURRENT_STATE.md` → `.raiden/state/OPEN_LOOPS.md`. These are authoritative for the Instance's structure, conventions, and current state.
++- Read `/forks/MANIFEST.md` as the authoritative inventory of forks to review. Any file flagged in the manifest as having an unknown author or unresolved conflict is noted in each relevant report section; the review proceeds but flags carry through.
++- Locate scoped model-routing config if present (`.raiden/local/ROUTING.md`, `.raiden/routing.md`, `.raiden/models.md`, `.raiden/agents.md`, or a routing section in `RAIDEN.md`). If found, it is authoritative for the Recommended model field on each synthesis candidate.
++
++## Review Categories
++
++### 1. Baseline Identification
++
++Read and characterize the baseline file before any fork analysis begins. Record:
++
++- File path and filename
++- Author, mod name, and version as declared in the file header
++- Declared feature set (from header comments, settings schema, or documentation blocks)
++- Approximate line count and structural sections (settings, globals, hooks, helpers, UI)
++- Any known issues or TODOs noted in the baseline itself
++
++This section is produced once and shared across all per-fork reports by reference. It is reproduced in full in the cross-fork synthesis report.
++
++### 2. Per-Fork Diff Analysis
++
++For each fork, produce a structured diff against the baseline covering:
++
++- **Additions** — new functions, new settings, new logic blocks, new constants, new includes
++- **Subtractions** — removed functions, removed settings, removed logic, removed includes
++- **Modifications** — changed function bodies, changed settings schema, changed constants, changed behavior
++
++For each changed unit (function, setting, block), record:
++- Unit name / identifier
++- Change type (addition / subtraction / modification)
++- Line range in the fork file
++- Brief description of what changed and apparent intent
++
++Do not summarize wholesale. Every discrete change gets its own entry. Small whitespace-only or comment-only changes may be grouped if they carry no behavioral difference; note the grouping explicitly.
++
++### 3. Change-Level Attribution
++
++For every change identified in Category 2, record the attributed author. Attribution is taken from:
++
++1. The fork file's declared `@author` or equivalent header field (primary)
++2. The fork's MANIFEST.md entry (secondary, if header is absent or ambiguous)
++3. The subfolder author segment in `/forks/{author}/` (tertiary fallback)
++
++If a fork contains changes that themselves credit a secondary contributor (e.g. a fork of a fork, or inline attribution comments), record both the fork author and the credited secondary contributor separately. Do not flatten multi-layer attribution.
++
++Attribution is recorded per change entry in the per-fork report and aggregated into an Attribution Index in the cross-fork synthesis report.
++
++### 4. Feature Surface Comparison
++
++Across all forks, map the complete feature surface as a table with one column per fork plus the baseline:
++
++- List every distinct feature or capability as a row
++- Mark each cell: present (✓), absent (–), modified variant (△), or removed (✗)
++- Flag features that appear in multiple forks with different implementations
++- Flag features that appear in only one fork (unique contributions)
++- Flag features present in the baseline that have been removed in one or more forks
++
++Produce this matrix in the cross-fork synthesis report.
++
++### 5. Code Quality Signals
++
++For each fork, assess the changes against the baseline for:
++
++- **Improvements** — cleaner logic, better error handling, more robust edge-case coverage, reduced redundancy
++- **Regressions** — introduced bugs, removed safety checks, broken logic paths, narrowed compatibility
++- **Dead code** — additions that are unreachable or unused
++- **Style drift** — significant deviation from the baseline's coding conventions that would complicate merging
++- **Compatibility signals** — changes that expand platform/runtime compatibility vs. changes that narrow it
++
++Quality signals are observations, not verdicts. Label each as Positive, Negative, or Neutral. Do not editorialize beyond what the code supports.
++
++### 6. Synthesis Candidates
++
++Enumerate every change across all forks that is a candidate for inclusion in a successor implementation. A change is a synthesis candidate if it:
++
++- Adds or improves functionality not present or not working correctly in the baseline
++- Does not directly conflict with another higher-ranked candidate
++- Is self-contained enough to be ported without carrying the entire fork
++
++For each candidate:
++
++- Assign a recommendation signal: **Recommended** (clear improvement, low integration risk), **Consider** (worthwhile but requires judgment or has integration complexity), or **Flag** (surfaced for operator awareness, not recommended without further review)
++- Record the source fork and attributed author
++- Write a one-to-two sentence synthesis seed describing what a downstream implementation prompt would need to do to incorporate this change (scope, target location, success criterion, attribution requirement)
++
++The agent recommends; the operator decides. List all candidates regardless of signal. Do not filter or suppress Flag-level candidates.
++
++### 7. Cross-Fork Conflicts and Incompatibilities
++
++Identify changes across forks that directly contradict each other — different implementations of the same function, conflicting settings schema changes, incompatible behavioral modifications. For each conflict:
++
++- Name the conflicting forks and the specific units in conflict
++- Describe the nature of the conflict
++- Note which approach (if any) is more consistent with the baseline's apparent design intent
++- Flag as requiring operator decision before synthesis can proceed
++
++### 8. Open Observations (Speculative Pass)
++
++A deliberately curious pass across all forks and the baseline: surface anything that looks off, surprising, or worth a second look — naming inconsistencies, orphaned code, patterns that suggest a fork author misunderstood the baseline, build or config oddities, anything that pattern-matches as "huh, that's strange."
++
++Findings default to Info unless they cross another category's threshold. Prefix uncertain observations with `(speculative)`.
++
++## Significance Scheme
++
++- **Critical** — introduced security issue (hardcoded credential, unsafe string handling in a privileged context, etc.); breaking regression that would prevent the mod from functioning
++- **High** — significant behavioral regression; removal of a feature present in the baseline without apparent justification; conflict between forks that blocks synthesis of high-value changes
++- **Medium** — meaningful code quality issue; style drift severe enough to complicate merging; unresolved multi-layer attribution
++- **Low** — minor hygiene, cosmetic changes, trivial dead code
++- **Info** — observations, positive signals, speculative notes
++
++## Synthesis Routing
++
++Every synthesis candidate is tagged with routing metadata for downstream prompt building.
++
++### Step 1: Apply scoped routing config if found
++
++If a scoped routing config exists (`.raiden/local/ROUTING.md`, `.raiden/routing.md`, `.raiden/models.md`, `.raiden/agents.md`, or a routing section in `RAIDEN.md`), its assignments are authoritative for the Recommended model field. Use them verbatim where they cover the change type.
++
++### Step 2: For candidates not covered by scoped config, classify by class
++
++| Class | Description | Default ladder rung |
++|---|---|---|
++| MECHANICAL | Direct port of a self-contained change with no judgment required (new constant, settings field, isolated helper) | Any rung cleared for mechanical work |
++| TARGETED-PORT | Bounded change in 1–2 functions requiring light adaptation (behavioral tweak, patched logic) | The lowest rung trusted with a bounded port unsupervised |
++| MULTI-UNIT-INTEGRATION | Coordinated changes across multiple functions or structural areas | A judgment-appropriate rung for coordinated multi-unit work |
++| CONFLICT-RESOLUTION | Requires operator-informed judgment to resolve competing fork implementations before porting | The top available rung |
++| SPECULATIVE-TRIAGE | First decide whether the change is worth porting; two-stage (triage → class-appropriate port if confirmed) | The top available rung |
++
++Rungs are defined by `ROUTING_POLICY.md` and resolved to concrete models through the operator's local mapping (`.raiden/local/ROUTING.md`). When in doubt between two classes, the more cautious class wins — prefer the higher rung; when in doubt, one rung up.
++
++### Step 3: Write a synthesis seed
++
++For each synthesis candidate, write a 1–2 sentence seed describing what a downstream implementation prompt would need to accomplish. The seed contains: source fork, attributed author, target location in a successor file, scope of change, success criterion, and attribution requirement. See `toolkit/prompts/handoff-template.md` for the canonical handoff shape.
++
++## Process
++
++1. Read RAIDEN Instance orientation files in order.
++2. Read `/forks/MANIFEST.md` as the authoritative fork inventory.
++3. Locate and characterize the baseline file (Category 1).
++4. Locate scoped model-routing config if present.
++5. For each fork listed in the manifest, execute Categories 2–3 (per-fork diff and attribution).
++6. Execute Categories 4–8 across all forks collectively.
++7. Assign significance levels; tag all synthesis candidates with class, model, and seed.
++8. Write per-fork reports (paths below).
++9. Write cross-fork synthesis report (path below).
++10. Publish state summary (paths below).
++
++## Output
++
++### Per-Fork Reports — Filename
++
++Write one Markdown report per fork at:
++
++```
++fork-reports/fork-review-{author-kebab}-{fork-name-kebab}-{YYYY-MM-DD}.md
++```
++
++Where `{author-kebab}` and `{fork-name-kebab}` match the directory segments used in `/forks/MANIFEST.md`, and `YYYY-MM-DD` is the current local date when the review runs.
++
++**Collision handling:** if a file with this exact name already exists, append `-HHMMSS` before `.md`.
++
++Create the `fork-reports/` directory if absent.
++
++### Per-Fork Report — Required Sections
++
++- **Header** — fork name, author, source file path, baseline file path, review date
++- **Baseline Reference** — one-line pointer to the Baseline Identification section in the synthesis report
++- **Diff Analysis** — per-change entries (Category 2), organized by change type
++- **Attribution** — per-change attribution table (Category 3)
++- **Code Quality Signals** — per-signal entries (Category 5), labeled Positive / Negative / Neutral
++- **Synthesis Candidates from this fork** — candidates sourced from this fork only, with signal, class, model, and seed
++- **Flags** — any manifest flags, missing attribution, or anomalies carried from MANIFEST.md
++- **Appendix** — tools used, approximate line counts, any skips with justification
++
++### Cross-Fork Synthesis Report — Filename
++
++Write one Markdown report at:
++
++```
++fork-reports/synthesis-{YYYY-MM-DD}.md
++```
++
++**Collision handling:** same `-HHMMSS` suffix rule as per-fork reports.
++
++### Cross-Fork Synthesis Report — Required Sections
++
++- **Executive Summary** — baseline identified, forks reviewed (count and list), total synthesis candidates by signal, top 3 priorities
++- **Baseline Identification** — full baseline characterization (Category 1)
++- **Feature Surface Matrix** — full cross-fork feature table (Category 4)
++- **Attribution Index** — all authors across all forks, changes attributed to each, any multi-layer attribution noted
++- **All Synthesis Candidates** — complete list across all forks, grouped by recommendation signal (Recommended → Consider → Flag), ordered by significance within group; each entry includes source fork, author, class, recommended model, and synthesis seed
++- **Conflicts and Incompatibilities** — all cross-fork conflicts (Category 7) with operator decision required flags
++- **Open Observations** — speculative pass findings (Category 8)
++- **Remediation Plan** — synthesis candidates grouped by class, ordered significance-then-fork within class, with model assignment per class
++- **Appendix** — forks reviewed (with paths), baseline path, routing source, any skips
++
++### State Publication
++
++After all reports are written, the review agent publishes two state files. Both reference the exact filenames of the reports just written.
++
++`FORK_REVIEW_LOG.md` and `last-fork-review.md` are **protocol-owned state files**, canonized in state schema v2 (`toolkit/instance/STRUCTURE.md`). They are created and maintained by this protocol, not by hand, and are gitignored on public Instances per D-0038 alongside the audit ledgers.
++
++**1. `.raiden/state/FORK_REVIEW_LOG.md` (rolling, append-only)** — prepend a new entry to the top of the entries section:
++
++```
++## YYYY-MM-DD — {baseline filename}
++
++- Forks reviewed: N
++- Synthesis candidates: Recommended N | Consider N | Flag N
++- Significance: Critical N | High N | Medium N | Low N | Info N
++- Per-fork reports: fork-reports/fork-review-*.md (N files)
++- Synthesis report: fork-reports/synthesis-YYYY-MM-DD[-HHMMSS].md
++- Top priority: <one-line summary of #1 synthesis priority>
++```
++
++If `FORK_REVIEW_LOG.md` doesn't exist, create it with a brief header and the first entry.
++
++**2. `.raiden/state/last-fork-review.md` (latest-only, overwritten)** — replace contents with:
++
++```
++# Last Fork Review
++
++- Date: YYYY-MM-DD
++- Baseline: {filename}
++- Forks reviewed: N
++- Synthesis report: fork-reports/synthesis-YYYY-MM-DD[-HHMMSS].md
++- Candidates: Recommended N | Consider N | Flag N
++- Top 3 priorities:
++  1. <one-line>
++  2. <one-line>
++  3. <one-line>
++```
++
++## Reporting Discipline
++
++- Every change entry cites a file path and line range.
++- Attribution is always taken from the file itself first. Never invent or assume an author.
++- Zero changes in a category is a valid result. Write "No findings." and move on. Do not pad.
++- Confidence labels: prefix uncertain observations with `(low-confidence)` or `(speculative)`.
++- No synthesis execution. Candidates and seeds only — implementation is downstream.
++- Synthesis routing fields only on actionable candidates.
++- Use class defaults verbatim when scoped routing doesn't cover a candidate. Do not invent novel model assignments.
++- Redact any accidentally committed secrets found in fork files per the zero-tolerance rule in `WORKSPACE_AUDIT_PROTOCOL.md` — flag as Critical and halt synthesis candidates for the affected fork pending operator review.
+diff --git a/.raiden/writ/OPERATING_RULES.md b/.raiden/writ/OPERATING_RULES.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..fb711481d1fef6fa732aab5323a3254d38ef1903
+--- /dev/null
++++ b/.raiden/writ/OPERATING_RULES.md
+@@ -0,0 +1,145 @@
++# Writ Operating Rules
++
++This file is a RAIDEN-managed law artifact inside an installed Writ.
++
++## Core Rules
++
++1. Treat files in `.raiden/writ/` as RAIDEN-managed core.
++2. Put repo-specific adaptation in `.raiden/local/`, not in managed-core files.
++3. Put continuity and fast-changing operational truth in `.raiden/state/`.
++4. Treat local edits to managed-core files as exceptions that require explicit
++   update conflict handling rather than silent overwrite.
++5. Review RAIDEN updates before applying to understand scope of changes.
++
++## Ownership Boundary
++
++The Writ is RAIDEN-managed core; the rest of `.raiden/` is the Instance's own.
++
++**RAIDEN-managed — the Instance agent may not write:**
++
++- `.raiden/writ/` — the installed managed core: law and operating-rule
++  artifacts, managed boundary guidance, and every other centrally owned file
++  that updates as one governed unit. Changes to these files happen only through
++  the Edict update path, never by in-place edit in the Instance.
++
++**Instance-owned — the Instance agent's own surfaces:**
++
++- `.raiden/local/` — local overlay: repo-specific prompts, rules, context, and
++  exceptions.
++- `.raiden/state/` — live continuity: current state, open loops, local
++  decisions, work log.
++- `.raiden/instance/` — install and update metadata, written by the install
++  mechanism.
++
++A local edit to a managed-core file is an exception that must be handled as an
++update conflict (D-0016 point 4), not absorbed silently. Adaptation belongs in
++the overlay and state layers; it must never move managed law into local notes
++to dodge the boundary.
++
++### Subagent Boundary Inheritance
++
++Subagents inherit the role boundary of the agent that spawns them. An Instance
++agent cannot elevate a subagent to Central agent scope. A subagent operating
++inside a downstream repo may not write `.raiden/writ/` or any framework canon
++regardless of what spawned it.
++
++## Report-and-Hold
++
++Report-and-Hold is the single named protocol for the three conditions under
++which an agent must stop and surface a situation to the operator rather than
++act through it. Each rule below is an instance of the same protocol.
++
++- **Rule 1 — modified-managed-file conflict (D-0016 point 4):** if a managed
++  file has been locally modified since install, stop — do not overwrite.
++  Surface the conflict to the operator.
++- **Rule 2 — dirty-tree halt:** before any distribution operation, run
++  `git status` in the target Instance. If the output is non-empty, stop. Do not
++  proceed into a dirty tree. Surface the dirty-tree items to the operator.
++- **Rule 3 — boundary-crossing stop:** if a task would require writing to a
++  surface outside the agent's role boundary (see the Ownership Boundary section
++  above), stop and confirm with the operator before proceeding.
++
++On any of the above conditions: stop, surface the issue to the operator in full
++detail, take no further mutating action until the operator explicitly instructs
++you to proceed.
++
++## Commit Attribution Policy
++
++Commits in a RAIDEN Instance must carry only the operator's git identity.
++
++- Do not add `Co-Authored-By`, `Co-authored-by`, or any agent attribution
++  trailer lines to commit messages.
++- The `commit-msg` hook installed by RAIDEN enforces this at the git level.
++  Do not remove or bypass it.
++
++## Branch Naming
++
++The mainline branch in every RAIDEN Instance must be named `main`.
++
++- If `git init` created a `master` branch, rename it before the first RAIDEN
++  install commit: `git branch -m master main`
++- Do not create or leave a `master` branch as the default.
++
++## Fact-Home Rule
++
++Every durable fact has **exactly one authoritative surface**. Every other
++surface may **reference** it — by pointer or ID — but must **not restate its
++value**. A fact that lives in one place cannot disagree with itself; the moment
++a fact is copied into prose in a second place, one copy starts to rot and
++nothing measures which. This is the same discipline the Writ applies to law
++(one hashed source of truth), applied to state.
++
++Authoritative homes inside an Instance:
++
++| Fact | Authoritative home | Everything else does |
++|---|---|---|
++| Installed Edict version | `.raiden/instance/metadata.json` | never restated in state prose |
++| Writ composition | manifest + baseline | never listed in state prose |
++| Loop status | `.raiden/state/OPEN_LOOPS.md` entry | `CURRENT_STATE.md` cites `LOOP-xxx` without restating open/closed |
++| Decisions | `.raiden/state/DECISIONS.md` | cited by ID, never re-summarized as if authoritative |
++| When a file was last true | git history of that file | **no hand-written "Last Updated" / "Last Verified" date footers** |
++| Volatile counts (tests, commits, components) | the repo itself | stated in prose only inside dated `WORK_LOG.md` entries, never in `CURRENT_STATE.md` |
++| Fleet roster / versions / lifecycle | the ops registry (private ops repo) | cited across repos via the citation namespace below, never re-tallied in an Instance |
++
++Corollaries:
++
++- Do **not** write the installed Edict version into `CURRENT_STATE.md` or any
++  other state prose. Read it from `metadata.json`.
++- Do **not** restate a loop's open/closed status where the loop is cited; the
++  citation carries the reader to the authoritative entry.
++- Volatile counts belong in a **dated** `WORK_LOG.md` entry (a snapshot with a
++  date is a historical record, not a current-state claim); they do not belong in
++  `CURRENT_STATE.md`, where they are stale the moment work continues.
++- Retire hand-maintained "Last Updated" footers. Freshness is derived from git,
++  which already records exactly when a file was last true; a footer that lies is
++  worse than no footer.
++
++## One Writer Per Repo
++
++At most **one agent session writes a given repo at a time.** Parallel work fans
++out **across** repos, not **within** one. Two sessions mutating the same repo
++race on non-atomic multi-file writes and silently clobber each other's state;
++the safe unit of concurrency is the repository, not the file. When more work is
++available than one session can carry, dispatch additional sessions to *other*
++repos rather than a second session into the same one.
++
++## Cross-Repo Citation Namespace
++
++References to another repo's work items use the form
++**`<RegistryName>:LOOP-xxx`** and **`<RegistryName>:D-xxx`**, where
++`<RegistryName>` is that Instance's name in the ops registry. The registry name
++is the namespace; each Instance keeps its own local `LOOP-`/`D-` sequence.
++Renumbering every repo's history into one global sequence would be pure churn —
++the ambiguity only ever hurts at the **citation site**, and a namespace prefix
++resolves it there. A bare `LOOP-004` means "this repo's LOOP-004"; another
++repo's is `Atlas:LOOP-004`.
++
++## Root CLAUDE.md Is a Pointer Only
++
++In a RAIDEN Instance, the repo-root `CLAUDE.md` is a **pointer only** — at most
++three lines directing the reader to `AGENTS.md`. It carries **no substantive
++governance**. Two auto-loaded surfaces with independent substantive content is
++how an Instance ends up governed by two things that disagree (the fact-home rule
++applied to instructions). Substantive local governance lives in
++`.raiden/local/rules/` (or in the root `AGENTS.md` bridge itself when short),
++where it survives updates and sits inside the inventoried overlay boundary.
+diff --git a/.raiden/writ/README.md b/.raiden/writ/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..e8b60e308abea4cc503d05f18415a45bae5e0e1e
+--- /dev/null
++++ b/.raiden/writ/README.md
+@@ -0,0 +1,33 @@
++# Writ Managed Core
++
++This is the installed managed-core payload of the Edict package (v2.1.0).
++
++In a downstream RAIDEN Instance it installs to `.raiden/writ/`. Every file here
++is RAIDEN-managed core: authored centrally, versioned and hash-tracked as one
++unit, and updated only through the Edict update path — never edited in place in
++an Instance.
++
++## Contents
++
++Six managed files plus one git hook:
++
++| File | Purpose |
++|---|---|
++| `AGENTS.md` | Full agent guide: naming canon, control-plane read order, memory precedence (D-0041), model routing, tooling surface, write boundaries, Writ contents |
++| `OPERATING_RULES.md` | Core operating rules, ownership boundary, Report-and-Hold protocol, commit attribution, branch naming, fact-home rule, one-writer-per-repo, cross-repo citation namespace, CLAUDE.md pointer rule |
++| `ROUTING_POLICY.md` | The cost/capability routing ladder (dispatch, escalation, review-boundary rules); names no models |
++| `WORKSPACE_AUDIT_PROTOCOL.md` | Canonical read-only workspace audit specification; routes by ladder rung |
++| `FORK_REVIEW_PROTOCOL.md` | Canonical fork-review specification; routes by ladder rung |
++| `README.md` | This file — Writ managed-core index |
++| `hooks/commit-msg` | Git-level enforcement of the commit-attribution policy; installs to `.git/hooks/commit-msg` |
++
++## Conventions in This Payload
++
++- **No named models.** Protocols reference rungs on the routing ladder defined
++  in `ROUTING_POLICY.md`. The rung→model mapping is operator-defined in the local
++  overlay (`.raiden/local/ROUTING.md`), never in managed files.
++- **No machine-absolute paths.** Per-Instance install facts live in
++  `.raiden/instance/metadata.json`; operator-specific locations live in the
++  local overlay.
++
++The installed `Writ` version always equals `manifest.json`'s `edict_version`.
+diff --git a/.raiden/writ/ROUTING_POLICY.md b/.raiden/writ/ROUTING_POLICY.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..ead91b738e9b210156f97a59ee2ed5aa3022f111
+--- /dev/null
++++ b/.raiden/writ/ROUTING_POLICY.md
+@@ -0,0 +1,61 @@
++# Routing Policy
++
++This Edict defines how a RAIDEN Instance routes a task to a model. It replaces
++the retired capability-tier scheme (`MODEL_TIERS.md`) with a single
++cost/capability **ladder**. It is canonical under RAIDEN's authority order and
++installs into `.raiden/writ/`.
++
++Routing names an **order**, not a category and not a model. No file in the
++managed Writ names a specific model or a specific rung's contents. The operator
++maps the ladder to the models actually available to them in a local-overlay file
++(`.raiden/local/ROUTING.md`), which is never managed and changes per operator and
++per month — exactly the kind of detail the managed layer must not carry.
++
++## The Ladder
++
++The operator maintains an **ordered list of rungs**. The **top rung is the
++highest capability and highest cost**; each rung below trades capability for
++cost. Rung **count and contents are operator-local** — a fleet may run two rungs
++or five; the managed layer fixes only the order and the rules that reference it.
++
++A protocol that says "route to the top rung" or "any rung cleared for mechanical
++work" is naming a position on the ladder; the operator resolves that position to
++a concrete model at run time.
++
++## Dispatch Rule
++
++Route each task to the **lowest rung you would trust to do it unsupervised**.
++**When in doubt, go one rung up.** The ladder has fallback built in: if a rung's
++model is unavailable, the adjacent rung is the natural substitute — there is no
++separate fallback designation to maintain.
++
++## Escalation Rule
++
++Escalate to the **top available rung** for:
++
++- **ambiguity** — the task is under-specified or admits materially different
++  correct readings;
++- **conflict resolution** — reconciling competing sources, forks, or decisions;
++- **security-sensitive review** — credential handling, auth/crypto, history
++  rewrite, anything where being wrong is expensive;
++- **Report-and-Hold dispositions** — deciding how to surface and resolve a
++  Report-and-Hold condition (see `OPERATING_RULES.md`).
++
++These are judgment-risk moments; being right outweighs being fast.
++
++## Review Boundary
++
++Work produced **outside the ladder** — an offload pool (other providers used for
++economic reasons), another provider's output, or generated bulk output — is
++**reviewed at a rung greater than or equal to the rung the task would have been
++dispatched to** on the ladder. Offloading a task for cost does not lower the bar
++its result must clear; it moves the judgment to the review step and pins that
++step to at least the dispatch rung.
++
++## Resolution Rule
++
++No file in the managed Writ names a specific model. The ladder's actual rungs,
++the models bound to each, the offload pool, and any billing or cost constraints
++are operator-defined in `.raiden/local/ROUTING.md`. Managed files reference rung
++positions ("top rung", "a rung cleared for mechanical work", "a judgment-
++appropriate rung"); operators resolve those positions to models locally.
+diff --git a/.raiden/writ/WORKSPACE_AUDIT_PROTOCOL.md b/.raiden/writ/WORKSPACE_AUDIT_PROTOCOL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..94d4ca01e7fbe934a43f0394e015b411470e13c2
+--- /dev/null
++++ b/.raiden/writ/WORKSPACE_AUDIT_PROTOCOL.md
+@@ -0,0 +1,241 @@
++# Workspace Audit Protocol
++
++This Edict defines the canonical workspace audit for a RAIDEN Instance. It is the authoritative specification of audit scope, severity, remediation routing, output, and state publication. Any agent invoked to perform a workspace audit follows this protocol exactly.
++
++## Purpose
++
++The workspace audit is a read-only assessment of a single RAIDEN Instance's repository, evaluating:
++
++- Exposed secrets and credentials (zero-tolerance)
++- Dependency vulnerabilities (production and development reported separately)
++- Outdated dependencies and deprecated APIs
++- Documentation drift
++- Repository hygiene
++- Configuration risk
++- License and legal compliance
++- Open observations (a deliberately curious speculative pass)
++
++The audit produces a Markdown report inside the Instance with per-finding remediation routing for downstream prompt building, and publishes a summary into the Instance's state layer.
++
++## Authority
++
++This Edict is canonical under RAIDEN's authority order. It is installed into `.raiden/writ/` by the updater. Per-Instance local overrides are NOT honored for this protocol — Instances may add audit-related local prompts under `.raiden/local/prompts/` for invocation convenience, but the protocol body itself is sourced from this file.
++
++## Companion canon
++
++- `toolkit/prompts/read-only-audit-review-template.md` — operator-invoked governance/structural review. Run as a milestone-level companion to the technical audit, not as a substitute. Different domain (governance coherence) and audience (operator/reviewer).
++- `toolkit/prompts/handoff-template.md` — structural model for remediation seeds (see Remediation Routing below). Each actionable finding's seed is functionally a bounded-task handoff from the audit agent to a downstream remediation agent.
++- `toolkit/prompts/completion-template.md` — structural model for state-publication closeout (see Output).
++
++## Model expectation
++
++The audit requires a model capable of severity judgment, Raiden-doc cross-referencing, and a speculative observations pass. Route to **the top available rung** (see `ROUTING_POLICY.md`); if the top rung's model is unavailable, the adjacent rung is the natural substitute per the ladder's built-in fallback.
++
++Per-Instance routing config may override this preference; see Remediation Routing for routing-config lookup. Rungs resolve to concrete models through the operator's local mapping (`.raiden/local/ROUTING.md`).
++
++## Hard Constraints
++
++- The repository under audit is read-only. No commits, pushes, tags, stashes, branch operations, or any modification to source files, dependencies, configurations, lockfiles, or git state.
++- No mutating commands. No installers, upgraders, formatters, auto-fix linters, codemods, migrations.
++- Permitted commands: read (`cat`, `head`, `less`), search (`grep`, `rg`, `find`, `ls`), git inspection (`git log`, `git diff`, `git show`, `git ls-files`, `git blame`, `git status`), and read-only audit subcommands (`npm audit`, `pnpm audit`, `pip-audit`, `cargo audit`, `govulncheck`, `bundle audit check --update=false`, `gitleaks detect --no-git --redact`, `trufflehog filesystem . --no-update`).
++- Mutating checks are skipped, not adapted; record the skip in the report appendix.
++- Permitted writes: the audit report file and the state-publication files (paths under Output). No other writes anywhere in the Instance.
++
++## Scope
++
++- Audit only the current repository.
++- Audit the HEAD commit of the current branch. Uncommitted working-tree changes are environment state, not audit findings; they appear in the Appendix only if genuinely security-relevant.
++- Cover tracked files at HEAD plus a sample of git history (for secret detection).
++- Polyglot: auto-detect ecosystems present (Node, Python, Go, Rust, Ruby, Java/JVM, .NET, PHP, etc.). Skip cleanly when an ecosystem is absent.
++- Read the target's canonical orientation. For RAIDEN Instances: `AGENTS.md` → `.raiden/README.md` → `.raiden/state/CURRENT_STATE.md` → `.raiden/state/OPEN_LOOPS.md`. For framework repos or other non-Instance targets without a `.raiden/` layer: read the root-level canonical docs that exist (typically `README.md`, governance docs like `GOVERNANCE.md` or `REPOSITORY_MAP.md`, and any present state files like `CURRENT_STATE.md`, `OPEN_LOOPS.md`, `DECISIONS.md`).
++- Locate scoped model-routing config if present. Search `.raiden/local/ROUTING.md` (the canonical routing overlay), then `.raiden/routing.md`, `.raiden/models.md`, `.raiden/agents.md`, a routing section in a separate `RAIDEN.md`, or — for framework repos and non-Instance targets — root-level equivalents like `routing.md`, `models.md`, or routing sections in canonical governance docs. If found, it is authoritative for the Recommended model field on each actionable finding. If absent everywhere, fall back to the class defaults in Remediation Routing.
++
++## Audit Categories
++
++### 1. Exposed Secrets
++
++Run a secrets scanner if available (`gitleaks`, `trufflehog`). Otherwise, pattern-search the working tree AND `git log -p` for: cloud provider credentials (AWS `AKIA*`/`ASIA*`, GCP service-account JSON, Azure connection strings); common SaaS tokens (Stripe `sk_live_*`, GitHub `ghp_*`/`github_pat_*`, Slack `xox*`, OpenAI `sk-*`, Anthropic `sk-ant-*`); committed credential files (`.env*`, `*.pem`, `id_rsa`, `*.keystore`, `credentials.json`, `service-account*.json`).
++
++Verify `.gitignore` excludes typical secret-bearing paths. Flag any secret in git history even if removed from the current tree.
++
++**Zero-tolerance rule:** any secret, credential, or API key found in the working tree or git history is reported as Critical regardless of whether it appears live, revoked, expired, or placeholder-like. No exceptions, no downgrades.
++
++### 2. Dependency Vulnerabilities
++
++For each detected ecosystem, run its native read-only audit:
++- Node: `npm audit --json` / `pnpm audit --json` / `yarn npm audit --json`
++- Python: `pip-audit` or `safety check`
++- Rust: `cargo audit`
++- Go: `govulncheck ./...`
++- Ruby: `bundle audit check --update=false`
++- PHP: `composer audit`
++
++Report CVEs by severity, package, installed version, and fixed-in version.
++
++**Report production and development dependencies separately.** Lead this category with the explicit split:
++
++> Production dependencies: N findings. Development dependencies: N findings.
++
++A clean production tree MUST be affirmatively stated, never implied by absence.
++
++### 3. Outdated Dependencies & Deprecated APIs
++
++- Packages >1 major version behind or >12 months stale.
++- APIs explicitly deprecated in the targeted runtime/framework version.
++- Runtime pins (Node, Python, Ruby, etc.) that are EOL or in extended-support-only status.
++
++### 4. Documentation Drift
++
++- Verify README setup/run commands resolve (e.g., every `npm run X` referenced exists in `package.json`).
++- Sample-check 5–10 external links via HEAD/GET. **Network is permitted; this check is MANDATORY unless network is genuinely unavailable.** Skipping on plausibility heuristics ("the links look live") is not acceptable. Acceptable skip reasons: unreachable network, all 10 requests timed out. If the canonical docs genuinely contain zero external links — or fewer than 10, in which case sample what exists — state the result affirmatively in the report (e.g., "No external links in canonical docs — vacuously satisfied" or "N external links checked, all reachable"). Zero-link or low-link is a valid finding result, not a skip; it should not appear in either Hard Skips or Discretionary Skips.
++- Flag stale `TODO`/`FIXME`/`HACK`/`XXX` markers strictly older than 6 months (via `git blame`). Exception: if the marker contains explicit deadline language ("by Q1 2026", "before v2.0") that has passed, flag it regardless of age.
++- Flag badge mismatches (license badge vs `LICENSE`, version badge vs manifest).
++
++### 5. Repository Hygiene
++
++- `.gitignore` coverage per detected stack.
++- Accidentally committed: build outputs (`dist/`, `build/`, `target/`, `*.pyc`, `__pycache__/`, `node_modules/`), IDE-local config (`.vscode/settings.json` with personal paths, `.idea/`), OS junk (`.DS_Store`, `Thumbs.db`, `desktop.ini`), large binaries (>1 MB unless intentional).
++- Broken signals: scripts pointing at missing files; CI configs referencing removed actions; lockfile-manifest divergence.
++
++### 6. Configuration Risk
++
++- Debug/dev flags enabled in production-looking configs.
++- Hardcoded localhost/staging/test endpoints in production code paths.
++- Permissive CORS (`*`), disabled TLS verification, default credentials in non-template configs.
++- Insecure framework defaults.
++
++### 7. License & Legal
++
++- `LICENSE` (or equivalent) present at repo root, matching what the README/manifest declares.
++- Dependency licenses incompatible with the project's declared license.
++- Missing attribution files where required by bundled licenses.
++
++### 8. Open Observations (Speculative Pass)
++
++A deliberately curious pass: surface anything that looks off, surprising, or worth a second look — even if it doesn't fit one of the categories above. Architectural smells, naming inconsistencies, dead/orphaned code, test gaps in critical modules, build/CI oddities, drift from Raiden documentation, anything that pattern-matches as "huh, that's strange."
++
++Findings default to Low or Info unless they cross another category's threshold. Prefix uncertain observations with `(speculative)`.
++
++## Severity Scheme
++
++- **Critical** — any secret/credential/API key in working tree or git history (zero tolerance); exploitable RCE/SQLi/auth-bypass pattern; EOL runtime with known active CVEs.
++- **High** — known CVE in a production dependency, hardcoded credential of any kind, missing/disabled security controls in shipping code.
++- **Medium** — significantly outdated major versions, deprecated APIs in active use, doc drift severe enough to break setup.
++- **Low** — minor hygiene, stale TODOs, cosmetic doc inconsistencies.
++- **Info** — observations, suggestions, positive signals.
++
++## Remediation Routing
++
++Every actionable finding (one with a Recommended action) is tagged with routing metadata. Info-level findings with no recommended action are exempt.
++
++### Step 1: Apply scoped routing config if found
++
++If a scoped routing config exists (`.raiden/local/ROUTING.md`, `.raiden/routing.md`, `.raiden/models.md`, `.raiden/agents.md`, a routing section in `RAIDEN.md`, or — for framework repos and non-Instance targets — root-level equivalents like `routing.md`, `models.md`, or routing sections in canonical governance docs), its assignments are authoritative for the Recommended model field. Use them verbatim where they cover the finding type.
++
++### Step 2: For findings not covered by scoped config, classify by class
++
++| Class | Description | Default ladder rung |
++|---|---|---|
++| MECHANICAL | Deterministic edit, no judgment (version bump, `.gitignore` line, license field) | Any rung cleared for mechanical work |
++| TARGETED-FIX | Bounded change, 1–2 files (broken link, single-function bug, stale TODO triage) | The lowest rung trusted with a bounded fix unsupervised |
++| MULTI-FILE-REFACTOR | Coordinated changes across many files (rename, API migration, structural reorg) | A judgment-appropriate rung for coordinated multi-file work |
++| SECURITY-CRITICAL | Careful review required (CVE remediation, credential rotation, auth/crypto, history rewrite) | The top available rung |
++| CONFIG/CI | Workflows, build config, scripts; validation-oriented | The lowest rung trusted with validation-oriented config work |
++| DOC-EDIT | README, markdown, comments only | Any rung cleared for mechanical work |
++| SPECULATIVE-TRIAGE | First decide whether to act; two-stage (triage → class-appropriate remediation if confirmed real) | The top available rung |
++
++Rungs are defined by `ROUTING_POLICY.md` and resolved to concrete models through the operator's local mapping (`.raiden/local/ROUTING.md`). When in doubt between two classes, the more cautious class wins — prefer the higher rung; when in doubt, one rung up.
++
++### Step 3: Write a remediation seed
++
++For each actionable finding, write a 1–2 sentence remediation seed describing what a downstream remediation prompt would need to accomplish. Seeds are structured as bounded-task handoffs to a downstream agent — the seed contains scope, target file(s), success criterion, and any necessary context. See `toolkit/prompts/handoff-template.md` for the canonical handoff shape.
++
++## Process
++
++1. Detect ecosystems and which read-only tools are available in the runtime environment.
++2. Read the target's canonical orientation. For RAIDEN Instances: `AGENTS.md` → `.raiden/README.md` → `.raiden/state/CURRENT_STATE.md` → `.raiden/state/OPEN_LOOPS.md`. For framework repos or other non-Instance targets without a `.raiden/` layer: read the root-level canonical docs that exist (typically `README.md`, governance docs like `GOVERNANCE.md` or `REPOSITORY_MAP.md`, and any present state files like `CURRENT_STATE.md`, `OPEN_LOOPS.md`, `DECISIONS.md`).
++3. Locate scoped model-routing config if present.
++4. Plan per-category checks; skip cleanly when a tool is missing or an ecosystem is absent.
++5. Execute read-only commands. Capture relevant output.
++6. Consolidate findings, deduplicate, assign severity.
++7. Tag each actionable finding with Remediation class, Recommended model, and Remediation seed.
++8. Write the audit report (path below).
++9. Publish state summary (paths below).
++
++## Output
++
++### Audit Report — Filename
++
++Write a single Markdown file at:
++
++```
++audit-reports/audit-YYYY-MM-DD-<short-sha>.md
++```
++
++Where:
++- `YYYY-MM-DD` is the current local date when the audit runs
++- `<short-sha>` is the first 7 characters of the HEAD commit SHA being audited
++
++**Collision handling:** if a file with this exact name already exists (re-running the audit on the same commit on the same day), append `-HHMMSS` (current local time, 24-hour, zero-padded) before the `.md` extension to avoid overwriting. Example:
++
++- First run today on commit `abc1234def...`: `audit-2026-05-13-abc1234.md`
++- Same-day rerun of same commit at 17:42:30 local: `audit-2026-05-13-abc1234-174230.md`
++
++Create the `audit-reports/` directory if absent.
++
++### Audit Report — Required Sections
++
++- **Executive Summary** — repository, commit, branch, severity counts, remediation-routing counts, top 3 priorities
++- **Orientation Layer** — canonical-docs location and status, routing config path or "Not found — class defaults applied", open loops referenced, layout notes
++- **Findings** — per category, per-finding ID/severity/class/model/location/evidence/why/action/seed; "No findings." where applicable; Category 2 leads with the production/development split
++- **Remediation Plan** — actionable findings grouped by class, ordered severity-then-ID within class, with model assignment per class
++- **Appendix** — ecosystems detected, tools used, routing source, Hard Skips (tool/ecosystem unavailable), Discretionary Skips (with justification — mandatory checks must NOT appear here), optional Working-Tree Context, approximate duration
++
++### State Publication
++
++After the report is written, the audit agent publishes two state files. Both reference the exact filename of the report just written (including any `-HHMMSS` suffix used for collision avoidance).
++
++`AUDIT_LOG.md` and `last-audit.md` are **protocol-owned state files**, canonized in state schema v2 (`toolkit/instance/STRUCTURE.md`). They are created and maintained by this protocol, not by hand, and are gitignored on public Instances per D-0038 (they carry operational vulnerability intelligence).
++
++If `.raiden/state/` exists in the audited repo, publish to the canonical paths below. If `.raiden/state/` does not exist (target is a framework repo or non-Instance), fall back to publishing alongside the audit report at `audit-reports/AUDIT_LOG.md` and `audit-reports/last-audit.md`. The Appendix MUST note which path set was used.
++
++**1. `.raiden/state/AUDIT_LOG.md` (rolling, append-only)** — prepend a new entry to the top of the entries section:
++
++```
++## YYYY-MM-DD (commit <short-sha>, branch <name>)
++
++- Findings: Critical N | High N | Medium N | Low N | Info N
++- Routing: Mechanical N | Targeted-fix N | Multi-file N | Security-critical N | Config/CI N | Doc-edit N | Speculative-triage N
++- Report: audit-reports/audit-YYYY-MM-DD-<short-sha>[-HHMMSS].md
++- Top priority: <one-line summary of #1 priority>
++```
++
++If `AUDIT_LOG.md` doesn't exist, create it with a brief header and the first entry.
++
++**2. `.raiden/state/last-audit.md` (latest-only, overwritten)** — replace the file contents with:
++
++```
++# Last Workspace Audit
++
++- Date: YYYY-MM-DD
++- Commit: <short-sha>
++- Branch: <name>
++- Report: audit-reports/audit-YYYY-MM-DD-<short-sha>[-HHMMSS].md
++- Findings: Critical N | High N | Medium N | Low N | Info N
++- Top 3 priorities:
++  1. <one-line>
++  2. <one-line>
++  3. <one-line>
++```
++
++The audit agent does NOT modify `CURRENT_STATE.md`, `OPEN_LOOPS.md`, `DECISIONS.md`, or `WORK_LOG.md`. Operator curation owns those. Critical and High findings warrant operator-side `OPEN_LOOPS.md` entries, but the audit recommends rather than writes them — the report's Remediation Plan section is the operator's queue.
++
++## Reporting Discipline
++
++- Redact secret values (`AKIA****`). Record location and type, never the secret itself.
++- Every finding cites a path and, where possible, a line number.
++- Zero findings in a category is a valid result. Write "No findings." and move on. Do not pad.
++- Confidence labels: prefix uncertain findings with `(low-confidence)` or `(speculative)`.
++- No remediation execution. Recommendations only.
++- Routing fields only on actionable findings.
++- Use class defaults verbatim when scoped routing doesn't cover a finding. Do not invent novel model assignments or editorialize on the maintainer's scoped choices.
+diff --git a/AGENTS.md b/AGENTS.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..39a227c07c6a839cdc684b33831a9d2cd00cce57
+--- /dev/null
++++ b/AGENTS.md
+@@ -0,0 +1,21 @@
++# Agent Startup - RAIDEN Instance
++
++Read `.raiden/README.md`, `.raiden/state/CURRENT_STATE.md`,
++`.raiden/state/OPEN_LOOPS.md`, and `.raiden/writ/AGENTS.md` before work.
++
++## Constraints
++
++- Do not write `.raiden/writ/`; it is RAIDEN-managed core.
++- Instance-owned adaptations belong in `.raiden/local/`; continuity belongs
++  in `.raiden/state/`.
++- D-0016: update managed core, preserve local overlay, preserve live state,
++  and stop and report on locally modified managed files.
++- Stop before distribution into a dirty target or crossing a role boundary.
++- Use `main` as the mainline branch, never `master`.
++- Commits use the operator's identity with no `Co-Authored-By` or other
++  agent attribution trailers. Do not bypass the commit-msg hook.
++- Naming canon: RAIDEN, Edict, RAIDEN Instance, Writ, payload.
++
++RAIDEN tooling runs from the central framework repo against this repo as
++`--instance`; consult `.raiden/local/HOST.md` for this machine's paths.
++Project-specific development conventions: `.raiden/local/rules/DEVELOPMENT.md`.
